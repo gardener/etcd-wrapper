@@ -9,7 +9,7 @@ BIN_DIR := bin
 
 .PHONY: add-license-headers
 add-license-headers: $(GO_ADD_LICENSE)
-	@./hack/addlicenseheaders.sh ${YEAR}
+	@./hack/add_license_headers.sh ${YEAR}
 
 .PHONY: build-local
 build-local:
@@ -23,17 +23,13 @@ clean:
 #-count=1 needed so that test results are not cached
 .PHONY: test
 test:
-	go test ./internal/... -count=1
-
-.PHONY: test-cov
-test-cov:
-	go test ./internal/... -cover
+	@./hack/test.sh
 
 .PHONY: revendor
 revendor:
-	go mod tidy
-	go mod vendor
+	@env GO111MODULE=on go mod tidy
+	@env GO111MODULE=on go mod vendor
 
 .PHONY: check
 check:
-	.ci/check
+	@./hack/check.sh --golangci-lint-config=./.golangci.yaml ./internal/...
