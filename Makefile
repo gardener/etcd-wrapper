@@ -31,5 +31,5 @@ revendor:
 	@env GO111MODULE=on go mod vendor
 
 .PHONY: check
-check:
+check: $(GOLANGCI_LINT)
 	@./hack/check.sh --golangci-lint-config=./.golangci.yaml ./internal/...
