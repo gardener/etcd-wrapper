@@ -1,40 +1,13 @@
 #!/usr/bin/env bash
 
-set -e
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# For the check step concourse will set the following environment variables:
-# SOURCE_PATH - path to component repository root directory.
-if [[ $(uname) == 'Darwin' ]]; then
-  READLINK_BIN="greadlink"
-else
-  READLINK_BIN="readlink"
-fi
+source "$(dirname "${0}")"/common.sh
 
-if [[ -z "${SOURCE_PATH}" ]]; then
-  export SOURCE_PATH="$(${READLINK_BIN} -f "$(dirname ${0})/..")"
-else
-  export SOURCE_PATH="$(${READLINK_BIN} -f ${SOURCE_PATH})"
-fi
+#################################################################
 
-VCS="github.com"
-ORGANIZATION="gardener"
-PROJECT="etcd-wrapper"
-REPOSITORY=${VCS}/${ORGANIZATION}/${PROJECT}
-cd "${SOURCE_PATH}"
-
-# Install Golint (linting tool).
-GO111MODULE=off go get -u golang.org/x/lint/golint
-
-###############################################################################
-
-PACKAGES="$(GO111MODULE=on go list -mod=vendor -e ./...)"
-LINT_FOLDERS="$(echo ${PACKAGES} | sed "s|github.com/gardener/etcd-wrapper|.|g")"
-
-# Execute static code checks.
-GO111MODULE=on go vet -mod vendor ${PACKAGES}
-
-# Execute automatic code formatting directive.
-go fmt ${PACKAGES}
-
-# Execute lint checks.
-golint -set_exit_status ${LINT_FOLDERS}
+echo "> Check..."
+make check
+echo "All checks are passing"

@@ -6,6 +6,7 @@ import (
 	"github.com/gardener/etcd-wrapper/internal/brclient"
 )
 
+// InitializeEtcd triggers the initialization of etcd DB.
 func InitializeEtcd(ctx context.Context) error {
 	//create new BackupRestoreClient
 	brClient := brclient.NewClient("")

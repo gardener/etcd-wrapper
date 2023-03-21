@@ -15,6 +15,7 @@ etcd-wrapper:
       build:
         image: 'golang:1.20.1'
         output_dir: 'binary'
+
   jobs:
     head-update:
       traits:

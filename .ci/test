@@ -1,25 +1,13 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# For all steps, concourse will set the following environment variables:
-# SOURCE_PATH - path to component repository root directory.
-if [[ -z "${SOURCE_PATH}" ]]; then
-  SOURCE_PATH="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")/..")"
-else
-  SOURCE_PATH="$(readlink -f "${SOURCE_PATH}")"
-fi
-export SOURCE_PATH
+source "$(dirname "${0}")"/common.sh
 
-source "${SOURCE_PATH}/.ci/common.sh"
+#################################################################
 
-###############################################################################
-
-if [ -z "$COVER" ] || [ "$COVER" = false ] ; then
-  echo "[INFO] Test coverage is disabled."
-  make test
-else
-  echo "[INFO] Test coverage is enabled."
-  make test-cov
-fi
-echo "Finished executing unit tests."
+echo "> Test..."
+make test
+echo "All tests passed"
