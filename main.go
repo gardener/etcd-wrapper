@@ -16,6 +16,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"github.com/gardener/etcd-wrapper/internal/types"
 	"log"
 	"os"
 
@@ -39,7 +41,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := signal.SetupHandler(logger, bootstrap.CaptureExitCode, bootstrap.DefaultExitCodeFilePath)
+	ctx := signal.SetupHandler(logger, bootstrap.CaptureExitCode, types.DefaultExitCodeFilePath)
 
 	// Add flags
 	fs := flag.CommandLine
@@ -47,9 +49,7 @@ func main() {
 	_ = fs.Parse(args[1:])
 
 	// Print all flags
-	flag.VisitAll(func(f *flag.Flag) {
-		logger.Info("Starting with flag", zap.String(f.Name, f.Value.String()))
-	})
+	printFlags(logger)
 
 	// InitAndStartEtcd command
 	if err = cmd.EtcdCmd.Run(ctx, logger); err != nil {
@@ -65,4 +65,13 @@ func checkArgs(args []string) {
 		cmd.PrintHelp(os.Stdout)
 		os.Exit(0)
 	}
+}
+
+func printFlags(logger *zap.Logger) {
+	var flagsToPrint string
+	flag.VisitAll(func(f *flag.Flag) {
+		flagsToPrint += fmt.Sprintf("%s: %s, ", f.Name, f.Value)
+	})
+
+	logger.Info(fmt.Sprintf("Running with flags: %s", flagsToPrint[:len(flagsToPrint)-2]))
 }

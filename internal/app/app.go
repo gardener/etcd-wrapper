@@ -16,6 +16,7 @@ package app
 
 import (
 	"context"
+	"github.com/gardener/etcd-wrapper/internal/types"
 
 	"github.com/gardener/etcd-wrapper/internal/bootstrap"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -32,7 +33,7 @@ type Application struct {
 	logger          *zap.Logger
 }
 
-func NewApplication(ctx context.Context, sidecarConfig *bootstrap.SidecarConfig, logger *zap.Logger) (*Application, error) {
+func NewApplication(ctx context.Context, sidecarConfig *types.SidecarConfig, logger *zap.Logger) (*Application, error) {
 	etcdInitializer, err := bootstrap.NewEtcdInitializer(sidecarConfig, logger)
 	if err != nil {
 		return nil, err
@@ -76,7 +77,7 @@ func (a *Application) Start() error {
 		return err
 	}
 	// Delete validation marker after etcd starts successfully
-	_ = bootstrap.CleanupExitCode(bootstrap.DefaultExitCodeFilePath)
+	_ = bootstrap.CleanupExitCode(types.DefaultExitCodeFilePath)
 	<-a.ctx.Done()
 	return nil
 }
