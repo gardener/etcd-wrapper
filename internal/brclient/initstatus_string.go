@@ -7,15 +7,16 @@ import "strconv"
 func _() {
 	// An "invalid array index" compiler error signifies that the constant values have changed.
 	// Re-run the stringer command to generate them again.
-	var x [2]struct{}
-	_ = x[New-0]
-	_ = x[InProgress-1]
-	_ = x[Successful-2]
+	var x [1]struct{}
+	_ = x[Unknown-0]
+	_ = x[New-1]
+	_ = x[InProgress-2]
+	_ = x[Successful-3]
 }
 
-const _InitStatus_name = "NewInProgressSuccessful"
+const _InitStatus_name = "UnknownNewInProgressSuccessful"
 
-var _InitStatus_index = [...]uint8{0, 3, 13, 23}
+var _InitStatus_index = [...]uint8{0, 7, 10, 20, 30}
 
 func (i InitStatus) String() string {
 	if i < 0 || i >= InitStatus(len(_InitStatus_index)-1) {

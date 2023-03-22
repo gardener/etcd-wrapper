@@ -16,6 +16,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/gardener/etcd-wrapper/internal/bootstrap"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/embed"
@@ -27,8 +28,8 @@ type Application struct {
 	ctx             context.Context
 	etcdInitializer bootstrap.EtcdInitializer
 	cfg             *embed.Config
-	logger          *zap.Logger
 	etcdClient      *clientv3.Client
+	logger          *zap.Logger
 }
 
 func NewApplication(ctx context.Context, sidecarConfig *bootstrap.SidecarConfig, logger *zap.Logger) (*Application, error) {
@@ -51,19 +52,20 @@ func (a *Application) Setup() error {
 		return err
 	}
 	a.cfg = cfg
-
 	return nil
 }
 
 // Start starts this application.
 func (a *Application) Start() error {
 	// Create etcd client for readiness probe
-	cli, err := a.CreateEtcdClient()
+	cli, err := a.createEtcdClient()
 	if err != nil {
 		return err
 	}
 	a.etcdClient = cli
-	defer a.etcdClient.Close()
+	defer func() {
+		_ = a.etcdClient.Close()
+	}()
 
 	// Setup readiness probe
 	go a.SetupReadinessProbe()

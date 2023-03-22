@@ -21,13 +21,6 @@ import (
 )
 
 var (
-	// Commands is a list of possible commands that could be run
-	Commands = []*Command{
-		&EtcdCmd,
-	}
-)
-
-var (
 	cliHelpTemplate = `
 NAME:
 {{printf "%s - %s" .Name .ShortDesc}}
