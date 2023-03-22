@@ -27,12 +27,46 @@ import (
 )
 
 const (
+	// ReadyServerPort is the port number for the server that serves the readiness probe
+	ReadyServerPort     = int64(9095)
 	etcdClientTimeout   = 5 * time.Second
 	etcdEndpointAddress = "://:2379"
-	ReadyServerPort     = int64(9095)
 	protocolHTTP        = "http"
 	protocolHTTPS       = "https"
 )
+
+// SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
+// the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
+func (a *Application) SetupReadinessProbe() {
+	// If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
+	if a.isTLSEnabled() {
+		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
+		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", ReadyServerPort), a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile, nil)
+		if err != nil {
+			a.logger.Error("error creating https listener", zap.Error(err))
+		}
+	} else {
+		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
+		err := http.ListenAndServe(fmt.Sprintf(":%d", ReadyServerPort), nil)
+		if err != nil {
+			a.logger.Error("error creating http listener", zap.Error(err))
+		}
+	}
+}
+
+func (a *Application) readinessHandler(w http.ResponseWriter, r *http.Request) {
+	// etcd `get` call
+	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, 5*time.Second)
+	defer cancelFunc()
+	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
+	if err != nil {
+		a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
 
 func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	protocol := protocolHTTP
@@ -83,39 +117,6 @@ func (a *Application) getTLSConfig() (*tls.Config, error) {
 		tlsConf.Certificates = []tls.Certificate{certificate}
 	}
 	return tlsConf, nil
-}
-
-func (a *Application) readinessHandler(w http.ResponseWriter, r *http.Request) {
-	// etcd `get` call
-	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, 5*time.Second)
-	defer cancelFunc()
-	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
-	if err != nil {
-		a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
-		w.WriteHeader(http.StatusServiceUnavailable)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
-}
-
-// SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
-// the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
-func (a *Application) SetupReadinessProbe() {
-	// If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
-	if a.isTLSEnabled() {
-		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
-		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", ReadyServerPort), a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile, nil)
-		if err != nil {
-			a.logger.Error("error creating https listener", zap.Error(err))
-		}
-	} else {
-		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
-		err := http.ListenAndServe(fmt.Sprintf(":%d", ReadyServerPort), nil)
-		if err != nil {
-			a.logger.Error("error creating http listener", zap.Error(err))
-		}
-	}
 }
 
 func (a *Application) isTLSEnabled() bool {

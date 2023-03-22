@@ -6,17 +6,22 @@ import (
 )
 
 const (
-	DefaultTLSEnabled       = false
-	DefaultSideCarAddress   = "http://127.0.0.1:8080"
+	// DefaultTLSEnabled defines the default TLS state of the application
+	DefaultTLSEnabled = false
+	// DefaultSideCarAddress defines the default sidecar base address
+	DefaultSideCarAddress = "http://127.0.0.1:8080"
+	// DefaultExitCodeFilePath defines the default file path for the file that stores the exit code of the previous run
 	DefaultExitCodeFilePath = "/Users/I544000/go/src/github.tools.sap/I062009/etcd-bootstrapper/exit_code" //"/var/etcd/data/exit_code" //TODO @aaronfern: use proper exit_code path here
 )
 
+// SidecarConfig defines parameters needed for the sidecar
 type SidecarConfig struct {
 	BaseAddress      string
 	TLSEnabled       bool
 	CaCertBundlePath *string
 }
 
+// Validate validates all parameters passed as sidecar configuration
 func (c *SidecarConfig) Validate() error {
 	baseURL, err := url.Parse(c.BaseAddress)
 	if err != nil {
