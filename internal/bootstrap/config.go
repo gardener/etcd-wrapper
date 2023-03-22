@@ -32,19 +32,18 @@ type SidecarConfig struct {
 }
 
 func (c *SidecarConfig) Validate() error {
-	// TODO @aaronfern: improve config validation
-	u, urlParseErr := url.Parse(c.BaseAddress)
-	if urlParseErr != nil {
-		return fmt.Errorf("error parsing base address URL: %s", urlParseErr.Error())
+	baseURL, err := url.Parse(c.BaseAddress)
+	if err != nil {
+		return fmt.Errorf("error parsing base address URL: %s: %v", c.BaseAddress, err)
 	}
-	if u.Scheme == "" || u.Host == "" {
-		return fmt.Errorf("invalid url passed as sidecar base address %s", urlParseErr.Error())
+	if baseURL.Scheme == "" || baseURL.Host == "" {
+		return fmt.Errorf("invalid url passed as sidecar base address %s", err.Error())
 	}
 	if c.TLSEnabled {
 		if *c.CaCertBundlePath == "" {
 			return fmt.Errorf("certificate bundle path cannot be empty when TLS is enabled")
 		}
-		if u.Scheme != "https" {
+		if baseURL.Scheme != "https" {
 			return fmt.Errorf("incorrect scheme for sidecar address. https URL expected")
 		}
 	}
