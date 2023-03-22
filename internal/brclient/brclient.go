@@ -27,7 +27,8 @@ import (
 type InitStatus int
 
 const (
-	New InitStatus = iota
+	Unknown InitStatus = iota
+	New
 	InProgress
 	Successful
 )
@@ -85,10 +86,6 @@ func NewClient(tlsEnabled bool, caCertBundlePath *string, sidecarBaseAddress str
 	}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
-		//MaxIdleConns:        0,
-		//MaxIdleConnsPerHost: 0,
-		//MaxConnsPerHost: 0,
-		//IdleConnTimeout: 0,
 	}
 	client := &http.Client{
 		Transport: transport,
@@ -102,10 +99,12 @@ func NewClient(tlsEnabled bool, caCertBundlePath *string, sidecarBaseAddress str
 func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 	response, err := c.client.Get(c.sidecarBaseAddress + "/initialization/status")
 	if err != nil {
-		return New, err
+		return Unknown, err
 	}
 	defer func() {
-		_ = response.Body.Close()
+		if response != nil {
+			_ = response.Body.Close()
+		}
 	}()
 
 	bodyBytes, _ := io.ReadAll(response.Body)
@@ -121,6 +120,7 @@ func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 }
 
 func (c *brClient) TriggerInitialization(validationType ValidationType) error {
+	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore.
 	_, err := c.client.Get(c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType))
 	return err
 }
@@ -131,16 +131,16 @@ func (c *brClient) GetEtcdConfig() (string, error) {
 		return "", err
 	}
 	defer func() {
-		_ = response.Body.Close()
+		if response != nil {
+			_ = response.Body.Close()
+		}
 	}()
 
-	bodyBytes, err := io.ReadAll(response.Body)
+	etcdConfigBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}
-	etcdConfig := string(bodyBytes)
-	err = os.WriteFile(c.etcdConfigFilePath, []byte(etcdConfig), 0777)
-	if err != nil {
+	if err = os.WriteFile(c.etcdConfigFilePath, etcdConfigBytes, 0777); err != nil {
 		return "", err
 	}
 	return c.etcdConfigFilePath, nil

@@ -36,12 +36,12 @@ const (
 	protocolHTTPS     = "https"
 )
 
-func (a *Application) CreateEtcdClient() (*clientv3.Client, error) {
+func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	tlsConf := &tls.Config{}
 	protocol := protocolHTTP
 	if len(a.cfg.ClientTLSInfo.CertFile) != 0 && len(a.cfg.ClientTLSInfo.KeyFile) != 0 && len(a.cfg.ClientTLSInfo.TrustedCAFile) != 0 {
 		// Create certificate key pair
-		certificates, err := tls.LoadX509KeyPair(a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile)
+		certificate, err := tls.LoadX509KeyPair(a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile)
 		if err != nil {
 			a.logger.Error("failed to load key pair", zap.Error(err))
 		}
@@ -56,7 +56,7 @@ func (a *Application) CreateEtcdClient() (*clientv3.Client, error) {
 
 		// Create TLS configuration
 		tlsConf.RootCAs = caCertPool
-		tlsConf.Certificates = []tls.Certificate{certificates}
+		tlsConf.Certificates = []tls.Certificate{certificate}
 
 		// Use https protocol
 		protocol = protocolHTTPS
@@ -99,11 +99,10 @@ func (a *Application) readinessHandler(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(jsonValue)
 }
 
-// SetupReadinessProbe sets up the readiness probe for this application.
+// SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
+// the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
 func (a *Application) SetupReadinessProbe() {
-	// TODO: is HTTPS needed here? is it overkill?
-	//the caller should call this in a go-routine as this method will setup a HTTP router and call ListenAndServe which blocks.
-	//If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
+	// If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
 	if len(a.cfg.ClientTLSInfo.CertFile) != 0 && len(a.cfg.ClientTLSInfo.KeyFile) != 0 {
 		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
 		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", ReadyServerPort), a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile, nil)

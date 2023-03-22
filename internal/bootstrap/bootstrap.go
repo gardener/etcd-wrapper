@@ -37,8 +37,8 @@ type EtcdInitializer interface {
 }
 
 type initializer struct {
-	logger   *zap.Logger
 	brClient brclient.BackupRestoreClient
+	logger   *zap.Logger
 }
 
 func NewEtcdInitializer(sidecarConfig *SidecarConfig, logger *zap.Logger) (EtcdInitializer, error) {
@@ -53,9 +53,9 @@ func NewEtcdInitializer(sidecarConfig *SidecarConfig, logger *zap.Logger) (EtcdI
 	}
 
 	return &initializer{
-		logger:   logger,
 		brClient: brClient,
-	}, err
+		logger:   logger,
+	}, nil
 }
 
 func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
@@ -73,7 +73,8 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 			i.logger.Error("error while fetching initialization status", zap.Error(err))
 		}
 		if initStatus == brclient.New {
-			if err = i.brClient.TriggerInitialization(getValidationMode(DefaultExitCodeFilePath)); err != nil {
+			validationMode := getValidationMode(DefaultExitCodeFilePath)
+			if err = i.brClient.TriggerInitialization(validationMode); err != nil {
 				i.logger.Error("error while triggering initialization to backup-restore", zap.Error(err))
 			}
 		}

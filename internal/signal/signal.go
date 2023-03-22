@@ -27,13 +27,13 @@ var (
 	shutdownSignals = []os.Signal{os.Interrupt, syscall.SIGTERM}
 )
 
-// SignalCallback is a callback that will be invoked when one of the shutdownSignals
+// Callback is a callback that will be invoked when one of the shutdownSignals
 // is caught. It is required that the implementation of this function should be very quick to ensure that it
 // finishes in time before the subsequent signal is caught which will result in a forced exit of the app.
-type SignalCallback[T any] func(os.Signal, T)
+type Callback[T any] func(os.Signal, T)
 
 // SetupHandler sets up a context which reacts to shutdownSignals
-func SetupHandler[T any](logger *zap.Logger, callback SignalCallback[T], callbackParam T) context.Context {
+func SetupHandler[T any](logger *zap.Logger, callback Callback[T], callbackParam T) context.Context {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	notifierCh := make(chan os.Signal, 1)
 	signal.Notify(notifierCh, shutdownSignals...)

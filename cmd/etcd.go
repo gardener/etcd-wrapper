@@ -17,17 +17,11 @@ package cmd
 import (
 	"context"
 	"flag"
+
 	"github.com/gardener/etcd-wrapper/internal/app"
 	"github.com/gardener/etcd-wrapper/internal/bootstrap"
 	"go.uber.org/zap"
 )
-
-type Command struct {
-	Name      string
-	ShortDesc string
-	UsageLine string
-	LongDesc  string
-}
 
 var (
 	EtcdCmd = Command{
@@ -44,16 +38,19 @@ Flags:
 		Address of the backup restore sidecar with which this container will interact during initialization.
 	--sidecar-ca-cert-bundle-path string
 		Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.`,
+		AddFlags: AddEtcdFlags,
+		Run:      InitAndStartEtcd,
 	}
+	sidecarConfig *bootstrap.SidecarConfig
 )
 
-func (c *Command) AddFlags(fs *flag.FlagSet, sidecarConfig *bootstrap.SidecarConfig) {
+func AddEtcdFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", bootstrap.DefaultTLSEnabled, "Enables TLS for the application")
 	fs.StringVar(&sidecarConfig.BaseAddress, "sidecar-base-address", bootstrap.DefaultSideCarAddress, "Base address of the backup restore sidecar")
 	sidecarConfig.CaCertBundlePath = fs.String("sidecar-ca-cert-bundle-path", "", "File path of CA cert bundle") //TODO @aaronfern: define a reasonable default
 }
 
-func (c *Command) Run(ctx context.Context, sidecarConfig *bootstrap.SidecarConfig, logger *zap.Logger) error {
+func InitAndStartEtcd(ctx context.Context, logger *zap.Logger) error {
 	etcdApp, err := app.NewApplication(ctx, sidecarConfig, logger)
 	if err != nil {
 		return err

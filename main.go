@@ -16,7 +16,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -31,13 +30,8 @@ const (
 	defaultLogLevel = zapcore.InfoLevel
 )
 
-var (
-	readyServerPort int64
-)
-
 func main() {
 	args := os.Args[1:]
-	fmt.Println(args)
 	checkArgs(args)
 	logger, err := bootstrap.SetupLogger(defaultLogLevel)
 	if err != nil {
@@ -49,8 +43,7 @@ func main() {
 
 	// Add flags
 	fs := flag.CommandLine
-	sidecarConfig := bootstrap.SidecarConfig{}
-	cmd.EtcdCmd.AddFlags(fs, &sidecarConfig)
+	cmd.EtcdCmd.AddFlags(fs)
 	_ = fs.Parse(args[1:])
 
 	// Print all flags
@@ -58,8 +51,8 @@ func main() {
 		logger.Info("Starting with flag", zap.String(f.Name, f.Value.String()))
 	})
 
-	// Run command
-	if err = cmd.EtcdCmd.Run(ctx, &sidecarConfig, logger); err != nil {
+	// InitAndStartEtcd command
+	if err = cmd.EtcdCmd.Run(ctx, logger); err != nil {
 		logger.Fatal("failed to start etcd", zap.Error(err))
 		os.Exit(1)
 	}
@@ -68,19 +61,8 @@ func main() {
 // Should check if any arg is help and print
 func checkArgs(args []string) {
 	//check if any unsupported command is specified. Print help if that is the case
-	if len(args) < 1 || !isCommandSupported(args[0]) {
+	if len(args) < 1 || !cmd.IsCommandSupported(args[0]) {
 		cmd.PrintHelp(os.Stdout)
 		os.Exit(0)
 	}
-
-	//check if any wrong flags are used. Print help if that is the case
-}
-
-func isCommandSupported(commandName string) bool {
-	for _, cmd := range cmd.Commands {
-		if cmd.Name == commandName {
-			return true
-		}
-	}
-	return false
 }
