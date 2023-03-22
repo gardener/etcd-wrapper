@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -30,7 +29,7 @@ func (r Result[T]) IsErr() bool {
 // then it will check it can proceed with the retry by evaluating via `canRetryFn`. A Result containing the return value if function invocation was successful or an error
 // if the function was not successful will be returned to the caller. The caller can check if the Result is an error by invoking Result.IsErr function.
 func Retry[T any](ctx context.Context, logger *zap.Logger, operation string, fn RetriableFunc[T], numAttempts int, backOff time.Duration, canRetryFn CanRetryPredicate) Result[T] {
-	var errNumAttemptsExhausted = errors.New(fmt.Sprintf("number of attempts exhausted for operation: %s", operation))
+	var errNumAttemptsExhausted = fmt.Errorf("number of attempts exhausted for operation: %s", operation)
 	for i := 0; i < numAttempts; i++ {
 		select {
 		case <-ctx.Done():

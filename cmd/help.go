@@ -34,6 +34,7 @@ DESCRIPTION:
 `
 )
 
+// PrintHelp prints out help test for the start-etcd command
 func PrintHelp(w io.Writer) {
 	bufW := bufio.NewWriter(w)
 	executeTemplate(w, cliHelpTemplate, EtcdCmd)

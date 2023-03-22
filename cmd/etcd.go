@@ -44,12 +44,14 @@ Flags:
 	sidecarConfig = types.SidecarConfig{}
 )
 
+// AddEtcdFlags adds flags from the parsed flagset into application structs
 func AddEtcdFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", types.DefaultTLSEnabled, "Enables TLS for the application")
 	fs.StringVar(&sidecarConfig.BaseAddress, "sidecar-base-address", types.DefaultSideCarAddress, "Base address of the backup restore sidecar")
 	sidecarConfig.CaCertBundlePath = fs.String("sidecar-ca-cert-bundle-path", "", "File path of CA cert bundle") //TODO @aaronfern: define a reasonable default
 }
 
+// InitAndStartEtcd sets up and starts an embedded etcd
 func InitAndStartEtcd(ctx context.Context, logger *zap.Logger) error {
 	etcdApp, err := app.NewApplication(ctx, &sidecarConfig, logger)
 	if err != nil {

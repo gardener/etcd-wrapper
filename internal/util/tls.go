@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// CreateCACertPool creates a CA cert pool gives a CA cert bundle
 func CreateCACertPool(caCertBundlePath string) (*x509.CertPool, error) {
 	caCertBundle, err := os.ReadFile(caCertBundlePath)
 	if err != nil {

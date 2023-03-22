@@ -33,6 +33,7 @@ const (
 	defaultBackOffBetweenRetries   = 1 * time.Second
 )
 
+// EtcdInitializer is an interface for methods to be used to initialize etcd
 type EtcdInitializer interface {
 	Run(context.Context) (*embed.Config, error)
 }
@@ -42,6 +43,7 @@ type initializer struct {
 	logger   *zap.Logger
 }
 
+// NewEtcdInitializer creates and returns an EtcdInitializer object
 func NewEtcdInitializer(sidecarConfig *types.SidecarConfig, logger *zap.Logger) (EtcdInitializer, error) {
 	// Validate sidecar configuration
 	if err := sidecarConfig.Validate(); err != nil {
@@ -59,6 +61,7 @@ func NewEtcdInitializer(sidecarConfig *types.SidecarConfig, logger *zap.Logger) 
 	}, nil
 }
 
+// Run initializes the etcd and gets the etcd configuration
 func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 	var (
 		err        error
@@ -91,6 +94,22 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 	return i.tryGetEtcdConfig(ctx, defaultBackupRestoreMaxRetries, defaultBackOffBetweenRetries)
 }
 
+// CaptureExitCode captures the exit signal into a file `exit_code`
+func CaptureExitCode(signal os.Signal, exitCodeFilePath string) {
+	interruptSignal := []byte(signal.String())
+	_ = os.WriteFile(exitCodeFilePath, interruptSignal, 0644)
+}
+
+// CleanupExitCode removes the `exit_code` file
+func CleanupExitCode(exitCodeFilePath string) error {
+	err := os.Remove(exitCodeFilePath)
+	if errors.Is(err, os.ErrNotExist) {
+		//log file does not exist
+		return nil
+	}
+	return err
+}
+
 func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, interval time.Duration) (*embed.Config, error) {
 	// Get etcd config only
 	opResult := util.Retry[string](ctx, i.logger, "GetEtcdConfig", func() (string, error) {
@@ -117,21 +136,4 @@ func getValidationMode(exitCodeFilePath string) brclient.ValidationType {
 	}
 	// Full validation if error
 	return brclient.FullValidation
-}
-
-func CaptureExitCode(signal os.Signal, exitCodeFilePath string) {
-	// capture the signal into exit_code
-	// Write signal to validation marker
-	interruptSignal := []byte(signal.String())
-	_ = os.WriteFile(exitCodeFilePath, interruptSignal, 0644)
-}
-
-func CleanupExitCode(exitCodeFilePath string) error {
-	//removes exit_code file
-	err := os.Remove(exitCodeFilePath)
-	if errors.Is(err, os.ErrNotExist) {
-		//log file does not exist
-		return nil
-	}
-	return err
 }

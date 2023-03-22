@@ -25,15 +25,21 @@ import (
 	"time"
 )
 
+// InitStatus is the status of initialisation as returned from backup-restore.
 type InitStatus int
 
 const (
+	// Unknown indicates that the initialisation by backup-restore is unknown.
 	Unknown InitStatus = iota
+	// New indicates that the initialisation by backup-restore is new and has not started yet.
 	New
+	// InProgress indicates that the initialisation by backup-restore is in-progress.
 	InProgress
+	// Successful indicates that the initialisation by backup-restore is successful.
 	Successful
 )
 
+// DefaultEtcdConfigFilePath defines the default file path for the etcd configuration file
 const DefaultEtcdConfigFilePath = "/etc/etcd.conf.yaml" //"/Users/I544000/go/src/github.tools.sap/I062009/etcd-bootstrapper/etcd-config-test.yaml"
 
 //go:generate stringer -type=InitStatus
@@ -74,6 +80,7 @@ func NewTestClient(testClient *http.Client, sidecarBaseAddress string, etcdConfi
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
+// NewClient creates and returns a new BackupRestoreClient object
 func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (BackupRestoreClient, error) {
 	var (
 		tlsConfig *tls.Config
