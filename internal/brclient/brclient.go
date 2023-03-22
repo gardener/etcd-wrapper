@@ -16,8 +16,9 @@ package brclient
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
+	"github.com/gardener/etcd-wrapper/internal/types"
+	"github.com/gardener/etcd-wrapper/internal/util"
 	"io"
 	"net/http"
 	"os"
@@ -45,6 +46,8 @@ const (
 	SanityValidation ValidationType = "sanity" // validation_sanity
 	// FullValidation does a complete validation of the etcd DB.
 	FullValidation ValidationType = "full" // validation_full
+	// httpClientRequestTimeout is the timeout for all requests made by the http client
+	httpClientRequestTimeout time.Duration = 10 * time.Second
 )
 
 // BackupRestoreClient is a client to connect to the backup-restore HTTPs server.
@@ -71,14 +74,14 @@ func NewTestClient(testClient *http.Client, sidecarBaseAddress string, etcdConfi
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
-func NewClient(tlsEnabled bool, caCertBundlePath *string, sidecarBaseAddress string, etcdConfigFilePath string) (BackupRestoreClient, error) {
+func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (BackupRestoreClient, error) {
 	var (
 		tlsConfig *tls.Config
 		err       error
 	)
 
-	if tlsEnabled {
-		if tlsConfig, err = createTLSConfig(*caCertBundlePath); err != nil {
+	if sidecarConfig.TLSEnabled {
+		if tlsConfig, err = createTLSConfig(*sidecarConfig.CaCertBundlePath); err != nil {
 			return nil, err
 		}
 	} else {
@@ -89,10 +92,10 @@ func NewClient(tlsEnabled bool, caCertBundlePath *string, sidecarBaseAddress str
 	}
 	client := &http.Client{
 		Transport: transport,
-		Timeout:   10 * time.Second, //Change as and when needed
+		Timeout:   httpClientRequestTimeout,
 	}
 	return &brClient{client: client,
-		sidecarBaseAddress: sidecarBaseAddress,
+		sidecarBaseAddress: sidecarConfig.BaseAddress,
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
@@ -107,7 +110,14 @@ func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 		}
 	}()
 
-	bodyBytes, _ := io.ReadAll(response.Body)
+	if !util.ResponseHasOKCode(response) {
+		return Unknown, fmt.Errorf("server returned bad response: %v", response)
+	}
+
+	bodyBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		return Unknown, err
+	}
 	initializationStatus := string(bodyBytes)
 
 	if initializationStatus == New.String() {
@@ -121,8 +131,14 @@ func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 
 func (c *brClient) TriggerInitialization(validationType ValidationType) error {
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore.
-	_, err := c.client.Get(c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType))
-	return err
+	response, err := c.client.Get(c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType))
+	if err != nil {
+		return err
+	}
+	if !util.ResponseHasOKCode(response) {
+		return fmt.Errorf("server returned bad response: %v", response)
+	}
+	return nil
 }
 
 func (c *brClient) GetEtcdConfig() (string, error) {
@@ -136,23 +152,25 @@ func (c *brClient) GetEtcdConfig() (string, error) {
 		}
 	}()
 
+	if !util.ResponseHasOKCode(response) {
+		return "", fmt.Errorf("server returned bad response: %v", response)
+	}
+
 	etcdConfigBytes, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", err
 	}
-	if err = os.WriteFile(c.etcdConfigFilePath, etcdConfigBytes, 0777); err != nil {
+	if err = os.WriteFile(c.etcdConfigFilePath, etcdConfigBytes, 0644); err != nil {
 		return "", err
 	}
 	return c.etcdConfigFilePath, nil
 }
 
 func createTLSConfig(caCertBundlePath string) (*tls.Config, error) {
-	caCertBundle, err := os.ReadFile(caCertBundlePath)
+	caCertPool, err := util.CreateCACertPool(caCertBundlePath)
 	if err != nil {
 		return nil, err
 	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCertBundle)
 
 	return &tls.Config{
 		RootCAs: caCertPool,

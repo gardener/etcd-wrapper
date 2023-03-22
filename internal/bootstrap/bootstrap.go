@@ -17,6 +17,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"github.com/gardener/etcd-wrapper/internal/types"
 	"os"
 	"strings"
 	"time"
@@ -41,13 +42,13 @@ type initializer struct {
 	logger   *zap.Logger
 }
 
-func NewEtcdInitializer(sidecarConfig *SidecarConfig, logger *zap.Logger) (EtcdInitializer, error) {
+func NewEtcdInitializer(sidecarConfig *types.SidecarConfig, logger *zap.Logger) (EtcdInitializer, error) {
 	// Validate sidecar configuration
 	if err := sidecarConfig.Validate(); err != nil {
 		return nil, err
 	}
 	//create brclient
-	brClient, err := brclient.NewClient(sidecarConfig.TLSEnabled, sidecarConfig.CaCertBundlePath, sidecarConfig.BaseAddress, brclient.DefaultEtcdConfigFilePath)
+	brClient, err := brclient.NewClient(*sidecarConfig, brclient.DefaultEtcdConfigFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -72,11 +73,13 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 		if initStatus, err = i.brClient.GetInitializationStatus(); err != nil {
 			i.logger.Error("error while fetching initialization status", zap.Error(err))
 		}
+		i.logger.Info("Fetched initialization status", zap.String("Status", initStatus.String()))
 		if initStatus == brclient.New {
-			validationMode := getValidationMode(DefaultExitCodeFilePath)
+			validationMode := getValidationMode(types.DefaultExitCodeFilePath)
 			if err = i.brClient.TriggerInitialization(validationMode); err != nil {
 				i.logger.Error("error while triggering initialization to backup-restore", zap.Error(err))
 			}
+			i.logger.Info("Fetched initialization status is `New`. Triggering etcd initialization with validation mode", zap.Any("mode", validationMode))
 		}
 		select {
 		case <-ctx.Done():
@@ -97,6 +100,7 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 		return nil, opResult.Err
 	}
 	etcdConfigFilePath := opResult.Value
+	i.logger.Info("Fetched etcd configuration")
 	return embed.ConfigFromFile(etcdConfigFilePath)
 }
 
