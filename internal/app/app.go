@@ -33,6 +33,7 @@ type Application struct {
 	logger          *zap.Logger
 }
 
+// NewApplication initializes and returns an application struct
 func NewApplication(ctx context.Context, sidecarConfig *types.SidecarConfig, logger *zap.Logger) (*Application, error) {
 	etcdInitializer, err := bootstrap.NewEtcdInitializer(sidecarConfig, logger)
 	if err != nil {
