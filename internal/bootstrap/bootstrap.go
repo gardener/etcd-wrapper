@@ -68,18 +68,13 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 		initStatus brclient.InitStatus
 	)
 	for initStatus != brclient.Successful {
-		select {
-		case <-ctx.Done():
-			return nil, ctx.Err()
-		default:
-		}
-		if initStatus, err = i.brClient.GetInitializationStatus(); err != nil {
+		if initStatus, err = i.brClient.GetInitializationStatus(ctx); err != nil {
 			i.logger.Error("error while fetching initialization status", zap.Error(err))
 		}
 		i.logger.Info("Fetched initialization status", zap.String("Status", initStatus.String()))
 		if initStatus == brclient.New {
 			validationMode := getValidationMode(types.DefaultExitCodeFilePath)
-			if err = i.brClient.TriggerInitialization(validationMode); err != nil {
+			if err = i.brClient.TriggerInitialization(ctx, validationMode); err != nil {
 				i.logger.Error("error while triggering initialization to backup-restore", zap.Error(err))
 			}
 			i.logger.Info("Fetched initialization status is `New`. Triggering etcd initialization with validation mode", zap.Any("mode", validationMode))
@@ -113,7 +108,7 @@ func CleanupExitCode(exitCodeFilePath string) error {
 func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, interval time.Duration) (*embed.Config, error) {
 	// Get etcd config only
 	opResult := util.Retry[string](ctx, i.logger, "GetEtcdConfig", func() (string, error) {
-		return i.brClient.GetEtcdConfig()
+		return i.brClient.GetEtcdConfig(ctx)
 	}, maxRetries, interval, util.AlwaysRetry)
 	if opResult.IsErr() {
 		return nil, opResult.Err

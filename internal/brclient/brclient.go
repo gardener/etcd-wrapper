@@ -15,6 +15,7 @@
 package brclient
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -60,11 +61,11 @@ const (
 // BackupRestoreClient is a client to connect to the backup-restore HTTPs server.
 type BackupRestoreClient interface {
 	// GetInitializationStatus gets the latest state of initialization from the backup-restore.
-	GetInitializationStatus() (InitStatus, error)
+	GetInitializationStatus(ctx context.Context) (InitStatus, error)
 	// TriggerInitialization triggers the initialization on the backup-restore passing in the ValidationType.
-	TriggerInitialization(validationType ValidationType) error
+	TriggerInitialization(ctx context.Context, validationType ValidationType) error
 	// GetEtcdConfig gets the etcd configuration from the backup-restore, stores it into a file and returns the path to the file.
-	GetEtcdConfig() (string, error)
+	GetEtcdConfig(ctx context.Context) (string, error)
 }
 
 // brClient implements BackupRestoreClient interface.
@@ -115,8 +116,19 @@ func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (Ba
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
-func (c *brClient) GetInitializationStatus() (InitStatus, error) {
-	response, err := c.client.Get(c.sidecarBaseAddress + "/initialization/status")
+func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
+	// create a child ctx for
+	httpCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// create request with ctx
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status", nil)
+	if err != nil {
+		return Unknown, fmt.Errorf("error creating http request: %v", err)
+	}
+
+	// send http request
+	response, err := c.client.Do(req)
 	if err != nil {
 		return Unknown, err
 	}
@@ -142,9 +154,21 @@ func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 	}
 }
 
-func (c *brClient) TriggerInitialization(validationType ValidationType) error {
+func (c *brClient) TriggerInitialization(ctx context.Context, validationType ValidationType) error {
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
-	response, err := c.client.Get(c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType))
+
+	// create a child ctx for
+	httpCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// create request with ctx
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+fmt.Sprintf("/initialization/start?mode=%s", validationType), nil)
+	if err != nil {
+		return fmt.Errorf("error creating http request: %v", err)
+	}
+
+	// send http request
+	response, err := c.client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -157,8 +181,19 @@ func (c *brClient) TriggerInitialization(validationType ValidationType) error {
 	return nil
 }
 
-func (c *brClient) GetEtcdConfig() (string, error) {
-	response, err := c.client.Get(c.sidecarBaseAddress + "/config")
+func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
+	// create a child ctx for
+	httpCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// create request with ctx
+	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+"/config", nil)
+	if err != nil {
+		return "", fmt.Errorf("error creating http request: %v", err)
+	}
+
+	// send http request
+	response, err := c.client.Do(req)
 	if err != nil {
 		return "", err
 	}
