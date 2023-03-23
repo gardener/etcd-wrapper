@@ -34,8 +34,8 @@ and starts an embedded etcd.
 Flags:
 	--tls-enabled
 		Enables TLS for the application (enabled by default)
-	--sidecar-base-address string
-		Address of the backup restore sidecar with which this container will interact during initialization.
+	--sidecar-host-port string
+		Host address and port of the backup restore sidecar with which this container will interact during initialization. Should be of the format <host>:<port> and must not include the protocol.
 	--sidecar-ca-cert-bundle-path string
 		Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.`,
 		AddFlags: AddEtcdFlags,
@@ -47,7 +47,7 @@ Flags:
 // AddEtcdFlags adds flags from the parsed flagset into application structs
 func AddEtcdFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", types.DefaultTLSEnabled, "Enables TLS for the application")
-	fs.StringVar(&sidecarConfig.BaseAddress, "sidecar-base-address", types.DefaultSideCarAddress, "Base address of the backup restore sidecar")
+	fs.StringVar(&sidecarConfig.HostPort, "sidecar-base-address", types.DefaultSideCarHostPort, "Base address of the backup restore sidecar")
 	sidecarConfig.CaCertBundlePath = fs.String("sidecar-ca-cert-bundle-path", "", "File path of CA cert bundle") //TODO @aaronfern: define a reasonable default
 }
 
