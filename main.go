@@ -17,9 +17,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gardener/etcd-wrapper/internal/types"
 	"log"
 	"os"
+
+	"github.com/gardener/etcd-wrapper/internal/types"
 
 	"github.com/gardener/etcd-wrapper/cmd"
 	"github.com/gardener/etcd-wrapper/internal/bootstrap"
@@ -53,7 +54,7 @@ func main() {
 
 	// InitAndStartEtcd command
 	if err = cmd.EtcdCmd.Run(ctx, logger); err != nil {
-		logger.Fatal("failed to start etcd", zap.Error(err))
+		logger.Fatal("error during start or run of etcd", zap.Error(err))
 		os.Exit(1)
 	}
 }
