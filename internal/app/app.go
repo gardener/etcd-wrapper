@@ -16,6 +16,7 @@ package app
 
 import (
 	"context"
+	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/types"
 
@@ -27,24 +28,26 @@ import (
 
 // Application is a top level struct which serves as an entry point for this application.
 type Application struct {
-	ctx             context.Context
-	etcdInitializer bootstrap.EtcdInitializer
-	cfg             *embed.Config
-	etcdClient      *clientv3.Client
-	etcd            *embed.Etcd
-	logger          *zap.Logger
+	ctx              context.Context
+	etcdInitializer  bootstrap.EtcdInitializer
+	cfg              *embed.Config
+	etcdClient       *clientv3.Client
+	etcd             *embed.Etcd
+	waitReadyTimeout time.Duration
+	logger           *zap.Logger
 }
 
 // NewApplication initializes and returns an application struct
-func NewApplication(ctx context.Context, sidecarConfig *types.SidecarConfig, logger *zap.Logger) (*Application, error) {
+func NewApplication(ctx context.Context, sidecarConfig *types.SidecarConfig, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
 	etcdInitializer, err := bootstrap.NewEtcdInitializer(sidecarConfig, logger)
 	if err != nil {
 		return nil, err
 	}
 	return &Application{
-		ctx:             ctx,
-		etcdInitializer: etcdInitializer,
-		logger:          logger,
+		ctx:              ctx,
+		etcdInitializer:  etcdInitializer,
+		waitReadyTimeout: waitReadyTimeout,
+		logger:           logger,
 	}, nil
 }
 
@@ -108,6 +111,8 @@ func (a *Application) startEtcd() error {
 		a.logger.Info("etcd server is now ready to serve client requests")
 	case <-etcd.Server.StopNotify():
 		a.logger.Error("etcd server has been aborted, received notification on StopNotify channel")
+	case <-time.After(a.waitReadyTimeout):
+		a.logger.Error("etcd server has been aborted, timeout waiting for ReadyNotify signal")
 	}
 	a.etcd = etcd
 	return nil
