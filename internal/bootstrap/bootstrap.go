@@ -49,6 +49,7 @@ func NewEtcdInitializer(sidecarConfig *types.SidecarConfig, logger *zap.Logger) 
 	if err := sidecarConfig.Validate(); err != nil {
 		return nil, err
 	}
+
 	//create brclient
 	brClient, err := brclient.NewClient(*sidecarConfig, brclient.DefaultEtcdConfigFilePath)
 	if err != nil {

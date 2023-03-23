@@ -18,9 +18,14 @@ import (
 	"context"
 	"flag"
 	"github.com/gardener/etcd-wrapper/internal/types"
+	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/app"
 	"go.uber.org/zap"
+)
+
+const (
+	DefaultEtcdWaitReadyTimeout = 10 * time.Second
 )
 
 var (
@@ -37,11 +42,14 @@ Flags:
 	--sidecar-host-port string
 		Host address and port of the backup restore sidecar with which this container will interact during initialization. Should be of the format <host>:<port> and must not include the protocol.
 	--sidecar-ca-cert-bundle-path string
-		Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.`,
+		Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.
+	--etcd-wait-ready-timeout
+		time duration the application will wait for etcd to get ready`,
 		AddFlags: AddEtcdFlags,
 		Run:      InitAndStartEtcd,
 	}
-	sidecarConfig = types.SidecarConfig{}
+	sidecarConfig    = types.SidecarConfig{}
+	waitReadyTimeout time.Duration
 )
 
 // AddEtcdFlags adds flags from the parsed flagset into application structs
@@ -49,11 +57,12 @@ func AddEtcdFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", types.DefaultTLSEnabled, "Enables TLS for the application")
 	fs.StringVar(&sidecarConfig.HostPort, "sidecar-base-address", types.DefaultSideCarHostPort, "Base address of the backup restore sidecar")
 	sidecarConfig.CaCertBundlePath = fs.String("sidecar-ca-cert-bundle-path", "", "File path of CA cert bundle") //TODO @aaronfern: define a reasonable default
+	fs.DurationVar(&waitReadyTimeout, "etcd-wait-ready-timeout", DefaultEtcdWaitReadyTimeout, "Time duration to wait for etcd to be ready")
 }
 
 // InitAndStartEtcd sets up and starts an embedded etcd
 func InitAndStartEtcd(ctx context.Context, logger *zap.Logger) error {
-	etcdApp, err := app.NewApplication(ctx, &sidecarConfig, logger)
+	etcdApp, err := app.NewApplication(ctx, &sidecarConfig, waitReadyTimeout, logger)
 	if err != nil {
 		return err
 	}
