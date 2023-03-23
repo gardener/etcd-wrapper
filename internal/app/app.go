@@ -16,6 +16,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/gardener/etcd-wrapper/internal/types"
 
 	"github.com/gardener/etcd-wrapper/internal/bootstrap"
@@ -30,6 +31,7 @@ type Application struct {
 	etcdInitializer bootstrap.EtcdInitializer
 	cfg             *embed.Config
 	etcdClient      *clientv3.Client
+	etcd            *embed.Etcd
 	logger          *zap.Logger
 }
 
@@ -46,7 +48,7 @@ func NewApplication(ctx context.Context, sidecarConfig *types.SidecarConfig, log
 	}, nil
 }
 
-// Setup sets up the application.
+// Setup sets up etcd by triggering initialization of the etcd DB.
 func (a *Application) Setup() error {
 	// Set up etcd
 	cfg, err := a.etcdInitializer.Run(a.ctx)
@@ -57,8 +59,10 @@ func (a *Application) Setup() error {
 	return nil
 }
 
-// Start starts this application.
+// Start sets up readiness probe and starts an embedded etcd.
 func (a *Application) Start() error {
+	var err error
+
 	// Create etcd client for readiness probe
 	cli, err := a.createEtcdClient()
 	if err != nil {
@@ -73,12 +77,38 @@ func (a *Application) Start() error {
 	go a.SetupReadinessProbe()
 
 	// Create embedded etcd and start.
-	_, err = embed.StartEtcd(a.cfg)
-	if err != nil {
+	if err = a.startEtcd(); err != nil {
 		return err
 	}
 	// Delete validation marker after etcd starts successfully
-	_ = bootstrap.CleanupExitCode(types.DefaultExitCodeFilePath)
-	<-a.ctx.Done()
+	if err = bootstrap.CleanupExitCode(types.DefaultExitCodeFilePath); err != nil {
+		a.logger.Warn("failed to clean-up last captured exit code", zap.Error(err))
+	}
+
+	select {
+	case <-a.ctx.Done():
+		a.logger.Error("application context has been cancelled", zap.Error(a.ctx.Err()))
+	case <-a.etcd.Server.StopNotify():
+		a.logger.Error("etcd server has been aborted, received notification on StopNotify channel")
+	case err = <-a.etcd.Err():
+		a.logger.Error("error received on etcd Err channel", zap.Error(err))
+	}
+
+	return nil
+}
+
+func (a *Application) startEtcd() error {
+	// TODO StartEtcd returns an Etcd object. In future we should use that to listen on leadership change notifications (when we move to a version of etcd which exposes the channel).
+	etcd, err := embed.StartEtcd(a.cfg)
+	if err != nil {
+		return err
+	}
+	select {
+	case <-etcd.Server.ReadyNotify():
+		a.logger.Info("etcd server is now ready to serve client requests")
+	case <-etcd.Server.StopNotify():
+		a.logger.Error("etcd server has been aborted, received notification on StopNotify channel")
+	}
+	a.etcd = etcd
 	return nil
 }

@@ -18,9 +18,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/gardener/etcd-wrapper/internal/util"
 	"net/http"
 	"time"
+
+	"github.com/gardener/etcd-wrapper/internal/util"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
@@ -30,9 +31,9 @@ const (
 	// ReadyServerPort is the port number for the server that serves the readiness probe
 	ReadyServerPort     = int64(9095)
 	etcdClientTimeout   = 5 * time.Second
-	etcdEndpointAddress = "://:2379"
-	protocolHTTP        = "http"
-	protocolHTTPS       = "https"
+	etcdEndpointAddress = ":2379"
+	schemeHTTP          = "http"
+	schemeHTTPS         = "https"
 )
 
 // SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
@@ -43,19 +44,18 @@ func (a *Application) SetupReadinessProbe() {
 		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
 		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", ReadyServerPort), a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile, nil)
 		if err != nil {
-			a.logger.Error("error creating https listener", zap.Error(err))
+			a.logger.Fatal("failed to start TLS readiness endpoint", zap.Error(err))
 		}
 	} else {
 		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
 		err := http.ListenAndServe(fmt.Sprintf(":%d", ReadyServerPort), nil)
 		if err != nil {
-			a.logger.Error("error creating http listener", zap.Error(err))
+			a.logger.Fatal("failed to start readiness endpoint", zap.Error(err))
 		}
 	}
 }
 
-func (a *Application) readinessHandler(w http.ResponseWriter, r *http.Request) {
-	// etcd `get` call
+func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
 	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, 5*time.Second)
 	defer cancelFunc()
 	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
@@ -64,12 +64,12 @@ func (a *Application) readinessHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
 	}
-
 	w.WriteHeader(http.StatusOK)
 }
 
+// createEtcdClient creates an ETCD client
 func (a *Application) createEtcdClient() (*clientv3.Client, error) {
-	protocol := protocolHTTP
+	scheme := schemeHTTP
 
 	// fetch tls configuration
 	tlsConf, err := a.getTLSConfig()
@@ -79,14 +79,13 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 
 	// use https protocol if tls is enabled
 	if a.isTLSEnabled() {
-		protocol = protocolHTTPS
+		scheme = schemeHTTPS
 	}
 
 	// Create etcd client
 	cli, err := clientv3.New(clientv3.Config{
-		//TODO: need TLS here?
 		Context:     a.ctx,
-		Endpoints:   []string{protocol + etcdEndpointAddress},
+		Endpoints:   []string{fmt.Sprintf("%s://%s", scheme, etcdEndpointAddress)},
 		DialTimeout: etcdClientTimeout,
 		Logger:      a.logger,
 		TLS:         tlsConf,
@@ -97,6 +96,7 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	return cli, nil
 }
 
+// getTLSConfig creates a TLS config if TLS has been enabled.
 func (a *Application) getTLSConfig() (*tls.Config, error) {
 	tlsConf := &tls.Config{}
 	if a.isTLSEnabled() {
@@ -119,6 +119,7 @@ func (a *Application) getTLSConfig() (*tls.Config, error) {
 	return tlsConf, nil
 }
 
+// isTLSEnabled checks if TLS has been enabled in the etcd configuration.
 func (a *Application) isTLSEnabled() bool {
 	return len(a.cfg.ClientTLSInfo.CertFile) != 0 && len(a.cfg.ClientTLSInfo.KeyFile) != 0 && len(a.cfg.ClientTLSInfo.TrustedCAFile) != 0
 }

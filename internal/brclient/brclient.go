@@ -17,12 +17,13 @@ package brclient
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/gardener/etcd-wrapper/internal/types"
-	"github.com/gardener/etcd-wrapper/internal/util"
 	"io"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/gardener/etcd-wrapper/internal/types"
+	"github.com/gardener/etcd-wrapper/internal/util"
 )
 
 // InitStatus is the status of initialisation as returned from backup-restore.
@@ -53,9 +54,7 @@ const (
 	// FullValidation does a complete validation of the etcd DB.
 	FullValidation ValidationType = "full" // validation_full
 	// httpClientRequestTimeout is the timeout for all requests made by the http client
-	httpClientRequestTimeout time.Duration = 10 * time.Second
-	protocolHTTP                           = "http"
-	protocolHTTPS                          = "https"
+	httpClientRequestTimeout = 10 * time.Second
 )
 
 // BackupRestoreClient is a client to connect to the backup-restore HTTPs server.
@@ -68,6 +67,7 @@ type BackupRestoreClient interface {
 	GetEtcdConfig() (string, error)
 }
 
+// brClient implements BackupRestoreClient interface.
 type brClient struct {
 	client             *http.Client
 	sidecarBaseAddress string
@@ -105,11 +105,12 @@ func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (Ba
 		Timeout:   httpClientRequestTimeout,
 	}
 
-	protocol = protocolHTTP
+	protocol = types.SchemeHTTP
 	if sidecarConfig.TLSEnabled {
-		protocol = protocolHTTPS
+		protocol = types.SchemeHTTPS
 	}
-	return &brClient{client: client,
+	return &brClient{
+		client:             client,
 		sidecarBaseAddress: fmt.Sprintf("%s://%s", protocol, sidecarConfig.HostPort),
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
@@ -119,11 +120,8 @@ func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 	if err != nil {
 		return Unknown, err
 	}
-	defer func() {
-		if response != nil {
-			_ = response.Body.Close()
-		}
-	}()
+
+	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
 		return Unknown, fmt.Errorf("server returned bad response: %v", response)
@@ -145,13 +143,16 @@ func (c *brClient) GetInitializationStatus() (InitStatus, error) {
 }
 
 func (c *brClient) TriggerInitialization(validationType ValidationType) error {
-	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore.
+	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
 	response, err := c.client.Get(c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType))
 	if err != nil {
 		return err
 	}
+
+	defer util.CloseResponseBody(response)
+
 	if !util.ResponseHasOKCode(response) {
-		return fmt.Errorf("server returned bad response: %v", response)
+		return fmt.Errorf("trigger initialization was not successful, server returned: %v", response)
 	}
 	return nil
 }
@@ -161,11 +162,8 @@ func (c *brClient) GetEtcdConfig() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer func() {
-		if response != nil {
-			_ = response.Body.Close()
-		}
-	}()
+
+	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
 		return "", fmt.Errorf("server returned bad response: %v", response)
