@@ -54,6 +54,8 @@ const (
 	FullValidation ValidationType = "full" // validation_full
 	// httpClientRequestTimeout is the timeout for all requests made by the http client
 	httpClientRequestTimeout time.Duration = 10 * time.Second
+	protocolHTTP                           = "http"
+	protocolHTTPS                          = "https"
 )
 
 // BackupRestoreClient is a client to connect to the backup-restore HTTPs server.
@@ -85,6 +87,7 @@ func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (Ba
 	var (
 		tlsConfig *tls.Config
 		err       error
+		protocol  string
 	)
 
 	if sidecarConfig.TLSEnabled {
@@ -101,8 +104,13 @@ func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (Ba
 		Transport: transport,
 		Timeout:   httpClientRequestTimeout,
 	}
+
+	protocol = protocolHTTP
+	if sidecarConfig.TLSEnabled {
+		protocol = protocolHTTPS
+	}
 	return &brClient{client: client,
-		sidecarBaseAddress: sidecarConfig.BaseAddress,
+		sidecarBaseAddress: fmt.Sprintf("%s://%s", protocol, sidecarConfig.HostPort),
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
