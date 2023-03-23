@@ -1,6 +1,7 @@
 package brclient
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -33,7 +34,7 @@ func TestBrClient_GetEtcdConfig(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error creating test client: %v", err)
 	}
-	req, err := httpClient.GetEtcdConfig()
+	req, err := httpClient.GetEtcdConfig(context.TODO())
 	if err != nil {
 		t.Errorf("Error fetching etcd config: %v", err)
 	}
@@ -58,7 +59,7 @@ func TestBrClient_GetInitializationStatus(t *testing.T) {
 		{"New", "Initialization status returned by server is New", New, New, testGetInitializationStatus},
 		{"InProgress", "Initialization status returned by server is InProgress", InProgress, InProgress, testGetInitializationStatus},
 		{"Successful", "Initialization status returned by server is Successful", Successful, Successful, testGetInitializationStatus},
-		{"Successful", "Initialization status returned by server is who knows", 3, InProgress, testGetInitializationStatus},
+		{"Successful", "Initialization status returned by server is who knows", 4, InProgress, testGetInitializationStatus},
 	}
 	for _, test := range tests {
 		t.Run(test.description, func(t *testing.T) {
@@ -74,9 +75,9 @@ func testGetInitializationStatus(t *testing.T, serverReturnedStatus InitStatus, 
 	testServer = httptest.NewServer(http.HandlerFunc(handler))
 	testClient = testServer.Client()
 	httpClient, _ = NewTestClient(testClient, testServer.URL, DefaultEtcdConfigFilePath)
-	req, _ := httpClient.GetInitializationStatus()
+	req, _ := httpClient.GetInitializationStatus(context.TODO())
 	if req != expectedStatus {
-		t.Errorf("Wrong status read %s. Expected %s -> %s", req.String(), expectedStatus.String(), serverReturnedStatus.String())
+		t.Errorf("Wrong status read %s. Expected %s, received %s", req.String(), expectedStatus.String(), serverReturnedStatus.String())
 	}
 	testServer.Close()
 }
