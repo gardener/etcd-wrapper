@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -22,14 +23,27 @@ type SidecarConfig struct {
 }
 
 // Validate validates all parameters passed as sidecar configuration
-func (c *SidecarConfig) Validate() error {
+func (c *SidecarConfig) Validate() (err error) {
+	splits := strings.Split(c.HostPort, ":")
+	if len(splits) < 2 {
+		err = errors.Join(err, fmt.Errorf("both host and port needs to be specified and should be adhere to format: <host>:<port>"))
+	}
+
 	if strings.HasPrefix(c.HostPort, "http:") || strings.HasPrefix(c.HostPort, "https:") {
-		return fmt.Errorf("sidecar-host-port should not contain scheme")
+		err = errors.Join(err, fmt.Errorf("sidecar-host-port should not contain scheme"))
 	}
 	if c.TLSEnabled {
-		if *c.CaCertBundlePath == "" {
-			return fmt.Errorf("certificate bundle path cannot be empty when TLS is enabled")
+		if c.CaCertBundlePath == nil || strings.TrimSpace(*c.CaCertBundlePath) == "" {
+			err = errors.Join(err, fmt.Errorf("certificate bundle path cannot be nil or empty when TLS is enabled"))
 		}
 	}
-	return nil
+	return
+}
+
+func (c *SidecarConfig) GetBaseAddress() string {
+	scheme := SchemeHTTP
+	if c.TLSEnabled {
+		scheme = SchemeHTTPS
+	}
+	return fmt.Sprintf("%s://%s", scheme, c.HostPort)
 }
