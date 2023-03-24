@@ -12,7 +12,7 @@ const (
 	// DefaultSideCarHostPort defines the default sidecar host and port
 	DefaultSideCarHostPort = ":8080"
 	// DefaultExitCodeFilePath defines the default file path for the file that stores the exit code of the previous run
-	DefaultExitCodeFilePath = "/Users/I544000/go/src/github.tools.sap/I062009/etcd-bootstrapper/exit_code" //"/var/etcd/data/exit_code" //TODO @aaronfern: use proper exit_code path here
+	DefaultExitCodeFilePath = "/var/etcd/data/exit_code"
 )
 
 // SidecarConfig defines parameters needed for the sidecar
