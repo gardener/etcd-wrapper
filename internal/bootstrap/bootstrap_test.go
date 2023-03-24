@@ -9,9 +9,9 @@ import (
 	"github.com/gardener/etcd-wrapper/internal/brclient"
 )
 
-const (
-	//TODO @aaronfern: Update this local path to pwd()+/test/exit_code
-	exitCodeFilePath = "/Users/I544000/go/src/github.com/gardener/etcd-wrapper/test/exit_code"
+var (
+	pwd, _           = os.Getwd()
+	exitCodeFilePath = pwd + "/../../test/exit_code"
 )
 
 func TestCleanupExitCode(t *testing.T) {

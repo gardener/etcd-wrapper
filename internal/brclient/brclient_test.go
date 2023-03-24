@@ -15,9 +15,9 @@ var (
 	httpClient BackupRestoreClient
 )
 
-const (
-	//TODO @aaronfern: Update this local path
-	etcdConfigFilePath = "/Users/I544000/go/src/github.com/gardener/etcd-wrapper/test/etcd-config.yaml"
+var (
+	pwd, _             = os.Getwd()
+	etcdConfigFilePath = pwd + "/../../test/etcd-config.yaml"
 )
 
 func TestBrClient_GetEtcdConfig(t *testing.T) {
