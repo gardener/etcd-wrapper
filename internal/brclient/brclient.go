@@ -88,15 +88,10 @@ func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (Ba
 	var (
 		tlsConfig *tls.Config
 		err       error
-		protocol  string
 	)
 
-	if sidecarConfig.TLSEnabled {
-		if tlsConfig, err = createTLSConfig(*sidecarConfig.CaCertBundlePath); err != nil {
-			return nil, err
-		}
-	} else {
-		tlsConfig = createInsecureTLSConfig()
+	if tlsConfig, err = createTLSConfig(sidecarConfig); err != nil {
+		return nil, err
 	}
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
@@ -106,13 +101,13 @@ func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (Ba
 		Timeout:   httpClientRequestTimeout,
 	}
 
-	protocol = types.SchemeHTTP
+	scheme := types.SchemeHTTP
 	if sidecarConfig.TLSEnabled {
-		protocol = types.SchemeHTTPS
+		scheme = types.SchemeHTTPS
 	}
 	return &brClient{
 		client:             client,
-		sidecarBaseAddress: fmt.Sprintf("%s://%s", protocol, sidecarConfig.HostPort),
+		sidecarBaseAddress: fmt.Sprintf("%s://%s", scheme, sidecarConfig.HostPort),
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
@@ -214,19 +209,19 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	return c.etcdConfigFilePath, nil
 }
 
-func createTLSConfig(caCertBundlePath string) (*tls.Config, error) {
-	caCertPool, err := util.CreateCACertPool(caCertBundlePath)
-	if err != nil {
-		return nil, err
+func createTLSConfig(sidecarConfig types.SidecarConfig) (*tls.Config, error) {
+	if sidecarConfig.TLSEnabled {
+		caCertPool, err := util.CreateCACertPool(*sidecarConfig.CaCertBundlePath)
+		if err != nil {
+			return nil, err
+		}
+		return &tls.Config{
+			RootCAs: caCertPool,
+		}, nil
 	}
 
-	return &tls.Config{
-		RootCAs: caCertPool,
-	}, nil
-}
-
-func createInsecureTLSConfig() *tls.Config {
+	// If TLS is not enabled then create an insecure TLS config
 	return &tls.Config{
 		InsecureSkipVerify: true,
-	}
+	}, nil
 }
