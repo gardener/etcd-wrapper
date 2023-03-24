@@ -1,33 +1,14 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
 
-# For all steps, concourse will set the following environment variables:
-# SOURCE_PATH - path to component repository root directory.
-if [[ -z "${SOURCE_PATH}" ]]; then
-  SOURCE_PATH="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")/..")"
-else
-  SOURCE_PATH="$(readlink -f "${SOURCE_PATH}")"
-fi
-export SOURCE_PATH
+set -o errexit
+set -o nounset
+set -o pipefail
 
-# For the build step concourse will additionally set the following environment variable:
-# BINARY_PATH - path to an existing (empty) directory to place build results into.
-if [[ -z "${BINARY_PATH}" ]]; then
-  BINARY_PATH="${SOURCE_PATH}/bin"
-else
-  BINARY_PATH="$(readlink -f "${BINARY_PATH}")/bin"
-fi
-export BINARY_PATH
-echo ${BINARY_PATH}
+source "$(dirname "${0}")"/common.sh
 
-# TODO: needed?
-source "${SOURCE_PATH}/.ci/common.sh"
+#################################################################
 
-###############################################################################
-
-CGO_ENABLED=0 GO111MODULE=on go build \
-  -mod vendor \
-  -v \
-  -o "${BINARY_PATH}"/etcd-wrapper \
-  main.go
+echo "> Build..."
+make build
+echo "Build completed successfully"
