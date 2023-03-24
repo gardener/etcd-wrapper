@@ -17,15 +17,12 @@ package cmd
 import (
 	"context"
 	"flag"
-	"github.com/gardener/etcd-wrapper/internal/types"
 	"time"
+
+	"github.com/gardener/etcd-wrapper/internal/types"
 
 	"github.com/gardener/etcd-wrapper/internal/app"
 	"go.uber.org/zap"
-)
-
-const (
-	DefaultEtcdWaitReadyTimeout = 10 * time.Second
 )
 
 var (
@@ -44,7 +41,7 @@ Flags:
 	--sidecar-ca-cert-bundle-path string
 		Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.
 	--etcd-wait-ready-timeout
-		time duration the application will wait for etcd to get ready`,
+		time duration the application will wait for etcd to get ready, by default it waits forever.`,
 		AddFlags: AddEtcdFlags,
 		Run:      InitAndStartEtcd,
 	}
@@ -57,7 +54,7 @@ func AddEtcdFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", types.DefaultTLSEnabled, "Enables TLS for the application")
 	fs.StringVar(&sidecarConfig.HostPort, "sidecar-base-address", types.DefaultSideCarHostPort, "Base address of the backup restore sidecar")
 	sidecarConfig.CaCertBundlePath = fs.String("sidecar-ca-cert-bundle-path", "", "File path of CA cert bundle") //TODO @aaronfern: define a reasonable default
-	fs.DurationVar(&waitReadyTimeout, "etcd-wait-ready-timeout", DefaultEtcdWaitReadyTimeout, "Time duration to wait for etcd to be ready")
+	fs.DurationVar(&waitReadyTimeout, "etcd-wait-ready-timeout", 0, "Time duration to wait for etcd to be ready")
 }
 
 // InitAndStartEtcd sets up and starts an embedded etcd
