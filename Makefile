@@ -11,10 +11,9 @@ BIN_DIR := bin
 add-license-headers: $(GO_ADD_LICENSE)
 	@./hack/add_license_headers.sh ${YEAR}
 
-.PHONY: build-local
-build-local:
-	.ci/build
-	#go build -o bin/etcd-wrapper
+.PHONY: build
+build:
+	@./hack/build.sh
 
 .PHONY: clean
 clean:

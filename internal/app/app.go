@@ -112,7 +112,7 @@ func (a *Application) startEtcd() error {
 	case <-etcd.Server.StopNotify():
 		a.logger.Error("etcd server has been aborted, received notification on StopNotify channel")
 	case <-time.After(a.waitReadyTimeout):
-		a.logger.Error("etcd server has been aborted, timeout waiting for ReadyNotify signal")
+		a.logger.Error("timeout waiting for ReadyNotify signal, aborting start of etcd")
 	}
 	a.etcd = etcd
 	return nil
