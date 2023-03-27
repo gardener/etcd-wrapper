@@ -17,10 +17,11 @@ package bootstrap
 import (
 	"context"
 	"errors"
-	"github.com/gardener/etcd-wrapper/internal/types"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/gardener/etcd-wrapper/internal/types"
 
 	"github.com/gardener/etcd-wrapper/internal/brclient"
 	"github.com/gardener/etcd-wrapper/internal/util"
@@ -51,7 +52,7 @@ func NewEtcdInitializer(sidecarConfig *types.SidecarConfig, logger *zap.Logger) 
 	}
 
 	//create brclient
-	brClient, err := brclient.NewClient(*sidecarConfig, brclient.DefaultEtcdConfigFilePath)
+	brClient, err := brclient.NewDefaultClient(*sidecarConfig, brclient.DefaultEtcdConfigFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +116,7 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 		return nil, opResult.Err
 	}
 	etcdConfigFilePath := opResult.Value
-	i.logger.Info("Fetched etcd configuration")
+	i.logger.Info("Fetched and written etcd configuration", zap.String("path", etcdConfigFilePath))
 	return embed.ConfigFromFile(etcdConfigFilePath)
 }
 
