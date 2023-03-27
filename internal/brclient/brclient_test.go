@@ -20,7 +20,56 @@ var (
 	etcdConfigFilePath = pwd + "/../../test/etcd-config.yaml"
 )
 
-func TestBrClient_GetEtcdConfig(t *testing.T) {
+//func TestSuit(t *testing.T) {
+//	allTests := []struct {
+//		name   string
+//		testFn func(t *testing.T)
+//	}{
+//		{"getEtcdConfig", testGetEtcdConfig},
+//	}
+//
+//	for _, entry := range allTests {
+//		t.Run(entry.name, entry.testFn)
+//	}
+//}
+
+type TestRoundTripper func(req *http.Request) *http.Response
+
+func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
+
+//func testGetEtcdConfig(t *testing.T) {
+//	table := []struct {
+//		description  string
+//		responseCode int
+//		responseBody []byte
+//		expectError  bool
+//	}{
+//		{"test: 200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), false},
+//	}
+//
+//	for _, entry := range table {
+//		t.Log(entry.description)
+//		httpClient := &http.Client{
+//			Transport: TestRoundTripper(func(req *http.Request) *http.Response {
+//				var contentLen int64
+//				if entry.responseBody != nil {
+//					contentLen = int64(len(entry.responseBody))
+//				}
+//				return &http.Response{
+//					StatusCode:    entry.responseCode,
+//					Body:          io.NopCloser(bytes.NewReader(entry.responseBody)),
+//					ContentLength: contentLen,
+//				}
+//			}),
+//			Timeout: 5 * time.Second,
+//		}
+//		NewClient(httpClient, )
+//	}
+//}
+
+func TestBrClient_TestGetEtcdConfig(t *testing.T) {
 	_, err := os.Getwd()
 	if err != nil {
 		t.Errorf("Error getting present working directory: %v", err)
@@ -30,7 +79,7 @@ func TestBrClient_GetEtcdConfig(t *testing.T) {
 	}
 	testServer = httptest.NewServer(http.HandlerFunc(handler))
 	testClient = testServer.Client()
-	httpClient, err = NewTestClient(testClient, testServer.URL, etcdConfigFilePath)
+	httpClient, err = NewClient(testClient, testServer.URL, etcdConfigFilePath)
 	if err != nil {
 		t.Errorf("Error creating test client: %v", err)
 	}
@@ -74,7 +123,7 @@ func testGetInitializationStatus(t *testing.T, serverReturnedStatus InitStatus, 
 	}
 	testServer = httptest.NewServer(http.HandlerFunc(handler))
 	testClient = testServer.Client()
-	httpClient, _ = NewTestClient(testClient, testServer.URL, DefaultEtcdConfigFilePath)
+	httpClient, _ = NewClient(testClient, testServer.URL, DefaultEtcdConfigFilePath)
 	req, _ := httpClient.GetInitializationStatus(context.TODO())
 	if req != expectedStatus {
 		t.Errorf("Wrong status read %s. Expected %s, received %s", req.String(), expectedStatus.String(), serverReturnedStatus.String())

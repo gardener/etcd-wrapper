@@ -20,7 +20,7 @@ type Command struct {
 	// AddFlags provides a generic way for commands to initialize flags to the passed in FlagSet.
 	AddFlags func(set *flag.FlagSet)
 	// Run invokes the command.
-	Run func(context.Context, *zap.Logger) error
+	Run func(context.Context, context.CancelFunc, *zap.Logger) error
 }
 
 var (

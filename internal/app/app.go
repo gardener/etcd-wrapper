@@ -29,6 +29,7 @@ import (
 // Application is a top level struct which serves as an entry point for this application.
 type Application struct {
 	ctx              context.Context
+	cancelFn         context.CancelFunc
 	etcdInitializer  bootstrap.EtcdInitializer
 	cfg              *embed.Config
 	etcdClient       *clientv3.Client
@@ -38,13 +39,14 @@ type Application struct {
 }
 
 // NewApplication initializes and returns an application struct
-func NewApplication(ctx context.Context, sidecarConfig *types.SidecarConfig, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
+func NewApplication(ctx context.Context, cancelFn context.CancelFunc, sidecarConfig *types.SidecarConfig, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
 	etcdInitializer, err := bootstrap.NewEtcdInitializer(sidecarConfig, logger)
 	if err != nil {
 		return nil, err
 	}
 	return &Application{
 		ctx:              ctx,
+		cancelFn:         cancelFn,
 		etcdInitializer:  etcdInitializer,
 		waitReadyTimeout: waitReadyTimeout,
 		logger:           logger,
@@ -72,9 +74,7 @@ func (a *Application) Start() error {
 		return err
 	}
 	a.etcdClient = cli
-	defer func() {
-		_ = a.etcdClient.Close()
-	}()
+	defer a.Close()
 
 	// Setup readiness probe
 	go a.SetupReadinessProbe()
@@ -88,6 +88,8 @@ func (a *Application) Start() error {
 		a.logger.Warn("failed to clean-up last captured exit code", zap.Error(err))
 	}
 
+	// block till application context is cancelled, or there is a notification on etcd.Server.StopNotify channel
+	// or there is an error notification on etcd.Err channel
 	select {
 	case <-a.ctx.Done():
 		a.logger.Error("application context has been cancelled", zap.Error(a.ctx.Err()))
@@ -100,12 +102,30 @@ func (a *Application) Start() error {
 	return nil
 }
 
+// Close closes resources(e.g. etcd client) and cancels the context if not already done so.
+func (a *Application) Close() {
+	if err := a.etcdClient.Close(); err != nil {
+		a.logger.Error("failed to close etcd client: %v", zap.Error(err))
+	}
+	a.cancelContext()
+}
+
+func (a *Application) cancelContext() {
+	// only if the context has not yet been cancelled, call the context.CancelFunc
+	if a.ctx.Err() == nil {
+		a.cancelFn()
+	}
+}
+
 func (a *Application) startEtcd() error {
 	// TODO StartEtcd returns an Etcd object. In future we should use that to listen on leadership change notifications (when we move to a version of etcd which exposes the channel).
 	etcd, err := embed.StartEtcd(a.cfg)
 	if err != nil {
 		return err
 	}
+
+	// wait till the etcd server notifies that it is ready, or if an abrupt stop has happened which is notified
+	// via etcd.Server.Notify or there is a timeout waiting for the etcd server to start.
 	select {
 	case <-etcd.Server.ReadyNotify():
 		a.logger.Info("etcd server is now ready to serve client requests")

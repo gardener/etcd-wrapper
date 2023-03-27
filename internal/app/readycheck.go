@@ -29,12 +29,18 @@ import (
 
 const (
 	// ReadyServerPort is the port number for the server that serves the readiness probe
-	ReadyServerPort     = int64(9095)
-	etcdClientTimeout   = 5 * time.Second
-	etcdEndpointAddress = ":2379"
-	schemeHTTP          = "http"
-	schemeHTTPS         = "https"
+	ReadyServerPort       = int64(9095)
+	etcdConnectionTimeout = 5 * time.Second
+	etcdGetTimeout        = 5 * time.Second
+	etcdEndpointAddress   = ":2379"
+	schemeHTTP            = "http"
+	schemeHTTPS           = "https"
 )
+
+// Create a struct which will hold the last status for etcd.
+// In SetupReadinessProbe first call go a.queryEtcdReadiness()/queryEtcdReadiness this function will
+// periodically query etcd and updates the readiness struct. The handler just reads from the struct.
+// If the struct has no status it assumes NotAvailable else it returns the current status.
 
 // SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
 // the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
@@ -56,7 +62,7 @@ func (a *Application) SetupReadinessProbe() {
 }
 
 func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
-	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, 5*time.Second)
+	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, etcdGetTimeout)
 	defer cancelFunc()
 	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
 	if err != nil {
@@ -86,7 +92,7 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	cli, err := clientv3.New(clientv3.Config{
 		Context:     a.ctx,
 		Endpoints:   []string{fmt.Sprintf("%s://%s", scheme, etcdEndpointAddress)},
-		DialTimeout: etcdClientTimeout,
+		DialTimeout: etcdConnectionTimeout,
 		Logger:      a.logger,
 		TLS:         tlsConf,
 	})
