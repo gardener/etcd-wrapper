@@ -75,51 +75,41 @@ type brClient struct {
 	etcdConfigFilePath string
 }
 
-// NewTestClient returns a BackupRestoreClient object with a configurable http.Client value
-// To be used for unit tests
-func NewTestClient(testClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) (BackupRestoreClient, error) {
-	return &brClient{client: testClient,
+//// NewTestClient returns a BackupRestoreClient object with a configurable http.Client value
+//// To be used for unit tests
+//func NewTestClient(testClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) (BackupRestoreClient, error) {
+//	return &brClient{client: testClient,
+//		sidecarBaseAddress: sidecarBaseAddress,
+//		etcdConfigFilePath: etcdConfigFilePath}, nil
+//}
+
+// NewDefaultClient creates a BackupRestoreClient using the SidecarConfig and etcd configuration at etcdConfigPath.
+// It delegates the responsibility to NewClient by passing in a default implementation of HttpClientCreator.
+func NewDefaultClient(sidecarConfig types.SidecarConfig, etcdConfigPath string) (BackupRestoreClient, error) {
+	client, err := createSidecarClient(sidecarConfig)
+	if err != nil {
+		return nil, err
+	}
+	return NewClient(client, sidecarConfig.GetBaseAddress(), etcdConfigPath)
+}
+
+// NewClient creates and returns a new BackupRestoreClient object
+func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) (BackupRestoreClient, error) {
+	return &brClient{
+		client:             httpClient,
 		sidecarBaseAddress: sidecarBaseAddress,
 		etcdConfigFilePath: etcdConfigFilePath}, nil
 }
 
-// NewClient creates and returns a new BackupRestoreClient object
-func NewClient(sidecarConfig types.SidecarConfig, etcdConfigFilePath string) (BackupRestoreClient, error) {
-	var (
-		tlsConfig *tls.Config
-		err       error
-	)
-
-	if tlsConfig, err = createTLSConfig(sidecarConfig); err != nil {
-		return nil, err
-	}
-	transport := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-	client := &http.Client{
-		Transport: transport,
-		Timeout:   httpClientRequestTimeout,
-	}
-
-	scheme := types.SchemeHTTP
-	if sidecarConfig.TLSEnabled {
-		scheme = types.SchemeHTTPS
-	}
-	return &brClient{
-		client:             client,
-		sidecarBaseAddress: fmt.Sprintf("%s://%s", scheme, sidecarConfig.HostPort),
-		etcdConfigFilePath: etcdConfigFilePath}, nil
-}
-
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
-	// create a child ctx for
-	httpCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// create a child cancellable ctx for the http GET call.
+	httpCtx, cancelFn := context.WithCancel(ctx)
+	defer cancelFn()
 
 	// create request with ctx
 	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status", nil)
 	if err != nil {
-		return Unknown, fmt.Errorf("error creating http request: %v", err)
+		return Unknown, fmt.Errorf("(GetInitializationStatus):  error creating http request: %v", err)
 	}
 
 	// send http request
@@ -131,7 +121,7 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
-		return Unknown, fmt.Errorf("server returned bad response: %v", response)
+		return Unknown, fmt.Errorf("(GetInitializationStatus): server retured error response code: %v", response)
 	}
 
 	bodyBytes, err := io.ReadAll(response.Body)
@@ -152,14 +142,14 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 func (c *brClient) TriggerInitialization(ctx context.Context, validationType ValidationType) error {
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
 
-	// create a child ctx for
+	// create a child cancellable ctx for GET request.
 	httpCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// create request with ctx
 	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+fmt.Sprintf("/initialization/start?mode=%s", validationType), nil)
 	if err != nil {
-		return fmt.Errorf("error creating http request: %v", err)
+		return fmt.Errorf("(TriggerInitialization): error creating http request: %v", err)
 	}
 
 	// send http request
@@ -171,7 +161,7 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
-		return fmt.Errorf("trigger initialization was not successful, server returned: %v", response)
+		return fmt.Errorf("(TriggerInitialization): server returned error response code: %v", response)
 	}
 	return nil
 }
@@ -184,7 +174,7 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	// create request with ctx
 	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+"/config", nil)
 	if err != nil {
-		return "", fmt.Errorf("error creating http request: %v", err)
+		return "", fmt.Errorf("(GetEtcdConfig): error creating http request: %v", err)
 	}
 
 	// send http request
@@ -196,7 +186,7 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
-		return "", fmt.Errorf("server returned bad response: %v", response)
+		return "", fmt.Errorf("(GetEtcdConfig): server returned error response code: %v", response)
 	}
 
 	etcdConfigBytes, err := io.ReadAll(response.Body)
@@ -207,6 +197,21 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return c.etcdConfigFilePath, nil
+}
+
+func createSidecarClient(sidecarConfig types.SidecarConfig) (*http.Client, error) {
+	tlsConfig, err := createTLSConfig(sidecarConfig)
+	if err != nil {
+		return nil, err
+	}
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+	client := &http.Client{
+		Transport: transport,
+		Timeout:   httpClientRequestTimeout,
+	}
+	return client, nil
 }
 
 func createTLSConfig(sidecarConfig types.SidecarConfig) (*tls.Config, error) {

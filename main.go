@@ -42,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	ctx := signal.SetupHandler(logger, bootstrap.CaptureExitCode, types.DefaultExitCodeFilePath)
+	ctx, cancelFn := signal.SetupHandler(logger, bootstrap.CaptureExitCode, types.DefaultExitCodeFilePath)
 
 	// Add flags
 	fs := flag.CommandLine
@@ -53,7 +53,7 @@ func main() {
 	printFlags(logger)
 
 	// InitAndStartEtcd command
-	if err = cmd.EtcdCmd.Run(ctx, logger); err != nil {
+	if err = cmd.EtcdCmd.Run(ctx, cancelFn, logger); err != nil {
 		logger.Fatal("error during start or run of etcd", zap.Error(err))
 		os.Exit(1)
 	}

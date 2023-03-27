@@ -26,6 +26,7 @@ import (
 )
 
 var (
+	// EtcdCmd initializes and starts an embedded etcd.
 	EtcdCmd = Command{
 		Name:      "start-etcd",
 		ShortDesc: "Starts the etcd-wrapper application by initializing and starting an embedded etcd",
@@ -45,11 +46,12 @@ Flags:
 		AddFlags: AddEtcdFlags,
 		Run:      InitAndStartEtcd,
 	}
-	sidecarConfig    = types.SidecarConfig{}
+	sidecarConfig = types.SidecarConfig{}
+	// waitReadyTimeout is the timeout for an embedded etcd server to be ready.
 	waitReadyTimeout time.Duration
 )
 
-// AddEtcdFlags adds flags from the parsed flagset into application structs
+// AddEtcdFlags adds flags from the parsed FlagSet into application structs
 func AddEtcdFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", types.DefaultTLSEnabled, "Enables TLS for the application")
 	fs.StringVar(&sidecarConfig.HostPort, "sidecar-base-address", types.DefaultSideCarHostPort, "Base address of the backup restore sidecar")
@@ -58,8 +60,8 @@ func AddEtcdFlags(fs *flag.FlagSet) {
 }
 
 // InitAndStartEtcd sets up and starts an embedded etcd
-func InitAndStartEtcd(ctx context.Context, logger *zap.Logger) error {
-	etcdApp, err := app.NewApplication(ctx, &sidecarConfig, waitReadyTimeout, logger)
+func InitAndStartEtcd(ctx context.Context, cancelFn context.CancelFunc, logger *zap.Logger) error {
+	etcdApp, err := app.NewApplication(ctx, cancelFn, &sidecarConfig, waitReadyTimeout, logger)
 	if err != nil {
 		return err
 	}

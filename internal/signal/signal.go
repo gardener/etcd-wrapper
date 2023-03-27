@@ -33,7 +33,7 @@ var (
 type Callback[T any] func(os.Signal, T)
 
 // SetupHandler sets up a context which reacts to shutdownSignals
-func SetupHandler[T any](logger *zap.Logger, callback Callback[T], callbackParam T) context.Context {
+func SetupHandler[T any](logger *zap.Logger, callback Callback[T], callbackParam T) (context.Context, context.CancelFunc) {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	notifierCh := make(chan os.Signal, 1)
 	signal.Notify(notifierCh, shutdownSignals...)
@@ -46,5 +46,5 @@ func SetupHandler[T any](logger *zap.Logger, callback Callback[T], callbackParam
 		<-notifierCh
 		os.Exit(1)
 	}()
-	return ctx
+	return ctx, cancelFn
 }
