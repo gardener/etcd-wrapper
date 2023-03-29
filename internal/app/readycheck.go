@@ -32,9 +32,18 @@ const (
 	ReadyServerPort       = int64(9095)
 	etcdConnectionTimeout = 5 * time.Second
 	etcdGetTimeout        = 5 * time.Second
+	etcdQueryBackoff      = 5 * time.Second
 	etcdEndpointAddress   = ":2379"
 	schemeHTTP            = "http"
 	schemeHTTPS           = "https"
+)
+
+type readyStatus struct {
+	ready bool
+}
+
+var (
+	etcdStatus readyStatus
 )
 
 // Create a struct which will hold the last status for etcd.
@@ -45,6 +54,8 @@ const (
 // SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
 // the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
 func (a *Application) SetupReadinessProbe() {
+	// Start go routine to regularly query etcd
+	go a.queryEtcdReadiness()
 	// If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
 	if a.isTLSEnabled() {
 		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
@@ -61,16 +72,33 @@ func (a *Application) SetupReadinessProbe() {
 	}
 }
 
+// queryEtcdReadiness queries the etcd DB and writes the status of the query into the etcdStatus struct
+func (a *Application) queryEtcdReadiness() {
+	for {
+		etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, etcdGetTimeout)
+		_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
+		if err != nil {
+			a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
+		}
+		etcdStatus.ready = err == nil
+		cancelFunc()
+
+		select {
+		case <-a.ctx.Done():
+			a.logger.Error("stopped periodic DB query: context cancelled", zap.Error(a.ctx.Err()))
+			return
+		case <-time.After(etcdQueryBackoff):
+		}
+	}
+}
+
+// readinessHandler reads the etcd status from the etcdStatus struct and writes that onto the http responsewriter
 func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
-	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, etcdGetTimeout)
-	defer cancelFunc()
-	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
-	if err != nil {
-		a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
-		w.WriteHeader(http.StatusServiceUnavailable)
+	if etcdStatus.ready {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusServiceUnavailable)
 }
 
 // createEtcdClient creates an ETCD client
@@ -127,5 +155,6 @@ func (a *Application) getTLSConfig() (*tls.Config, error) {
 
 // isTLSEnabled checks if TLS has been enabled in the etcd configuration.
 func (a *Application) isTLSEnabled() bool {
+	// TODO: make sure we don't have nil pointer dereference
 	return len(a.cfg.ClientTLSInfo.CertFile) != 0 && len(a.cfg.ClientTLSInfo.KeyFile) != 0 && len(a.cfg.ClientTLSInfo.TrustedCAFile) != 0
 }

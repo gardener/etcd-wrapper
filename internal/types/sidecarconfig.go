@@ -40,6 +40,7 @@ func (c *SidecarConfig) Validate() (err error) {
 	return
 }
 
+// GetBaseAddress returns the complete address of the backup restore sidecar
 func (c *SidecarConfig) GetBaseAddress() string {
 	scheme := SchemeHTTP
 	if c.TLSEnabled {
