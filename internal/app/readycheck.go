@@ -32,30 +32,26 @@ const (
 	ReadyServerPort       = int64(9095)
 	etcdConnectionTimeout = 5 * time.Second
 	etcdGetTimeout        = 5 * time.Second
-	etcdQueryBackoff      = 5 * time.Second
+	etcdQueryInterval     = 2 * time.Second
 	etcdEndpointAddress   = ":2379"
 	schemeHTTP            = "http"
 	schemeHTTPS           = "https"
 )
 
-type readyStatus struct {
-	ready bool
-}
-
 var (
-	etcdStatus readyStatus
+	etcdReady bool
 )
 
 // Create a struct which will hold the last status for etcd.
-// In SetupReadinessProbe first call go a.queryEtcdReadiness()/queryEtcdReadiness this function will
+// In SetupReadinessProbe first call go a.queryAndUpdateEtcdReadiness()/queryAndUpdateEtcdReadiness this function will
 // periodically query etcd and updates the readiness struct. The handler just reads from the struct.
 // If the struct has no status it assumes NotAvailable else it returns the current status.
 
 // SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
 // the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
 func (a *Application) SetupReadinessProbe() {
-	// Start go routine to regularly query etcd
-	go a.queryEtcdReadiness()
+	// Start go routine to regularly query etcd to update its readiness status.
+	go a.queryAndUpdateEtcdReadiness()
 	// If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
 	if a.isTLSEnabled() {
 		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
@@ -72,29 +68,34 @@ func (a *Application) SetupReadinessProbe() {
 	}
 }
 
-// queryEtcdReadiness queries the etcd DB and writes the status of the query into the etcdStatus struct
-func (a *Application) queryEtcdReadiness() {
+// queryAndUpdateEtcdReadiness queries the etcd DB and updates the status of the query into the etcdStatus struct
+func (a *Application) queryAndUpdateEtcdReadiness() {
 	for {
-		etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, etcdGetTimeout)
-		_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
-		if err != nil {
-			a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
-		}
-		etcdStatus.ready = err == nil
-		cancelFunc()
-
+		etcdReady = a.isEtcdReady()
 		select {
 		case <-a.ctx.Done():
 			a.logger.Error("stopped periodic DB query: context cancelled", zap.Error(a.ctx.Err()))
 			return
-		case <-time.After(etcdQueryBackoff):
+		case <-time.After(etcdQueryInterval):
 		}
 	}
 }
 
+// isEtcdReady checks if ETCD is ready by making a `GET` call (with a timeout).
+// if there is an error then it returns false else it returns true.
+func (a *Application) isEtcdReady() bool {
+	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, etcdGetTimeout)
+	defer cancelFunc()
+	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
+	if err != nil {
+		a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
+	}
+	return err == nil
+}
+
 // readinessHandler reads the etcd status from the etcdStatus struct and writes that onto the http responsewriter
 func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
-	if etcdStatus.ready {
+	if etcdReady {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
