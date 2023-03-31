@@ -75,14 +75,6 @@ type brClient struct {
 	etcdConfigFilePath string
 }
 
-//// NewTestClient returns a BackupRestoreClient object with a configurable http.Client value
-//// To be used for unit tests
-//func NewTestClient(testClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) (BackupRestoreClient, error) {
-//	return &brClient{client: testClient,
-//		sidecarBaseAddress: sidecarBaseAddress,
-//		etcdConfigFilePath: etcdConfigFilePath}, nil
-//}
-
 // NewDefaultClient creates a BackupRestoreClient using the SidecarConfig and etcd configuration at etcdConfigPath.
 // It delegates the responsibility to NewClient by passing in a default implementation of HttpClientCreator.
 func NewDefaultClient(sidecarConfig types.SidecarConfig, etcdConfigPath string) (BackupRestoreClient, error) {

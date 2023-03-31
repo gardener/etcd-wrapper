@@ -32,7 +32,7 @@ import (
 )
 
 var (
-	testdataPath       = "testdata"
+	testdataPath       = "../testdata"
 	etcdCertFilePath   = filepath.Join(testdataPath, "etcd.crt")
 	etcdCACertFilePath = filepath.Join(testdataPath, "ca.crt")
 	etcdKeyFilePath    = filepath.Join(testdataPath, "etcd.key")

@@ -16,7 +16,6 @@ package util
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -43,7 +42,10 @@ func (r Result[T]) IsErr() bool {
 // then it will check it can proceed with the retry by evaluating via `canRetryFn`. A Result containing the return value if function invocation was successful or an error
 // if the function was not successful will be returned to the caller. The caller can check if the Result is an error by invoking Result.IsErr function.
 func Retry[T any](ctx context.Context, logger *zap.Logger, operation string, fn RetriableFunc[T], numAttempts int, backOff time.Duration, canRetryFn CanRetryPredicate) Result[T] {
-	var errNumAttemptsExhausted = fmt.Errorf("number of attempts exhausted for operation: %s", operation)
+	var (
+		resultVal T
+		err       error
+	)
 	for i := 0; i < numAttempts; i++ {
 		select {
 		case <-ctx.Done():
@@ -52,23 +54,23 @@ func Retry[T any](ctx context.Context, logger *zap.Logger, operation string, fn 
 		default:
 		}
 		// invoke the retriable function
-		resultVal, err := fn()
+		resultVal, err = fn()
 		if err == nil {
 			return Result[T]{Value: resultVal}
 		}
 		if !canRetryFn(err) {
-			return Result[T]{Err: err}
+			return Result[T]{Value: resultVal, Err: err}
 		}
 		select {
 		case <-ctx.Done():
 			logger.Error("context has been cancelled. stopping retry", zap.String("operation", operation), zap.Error(ctx.Err()))
 			return Result[T]{Err: ctx.Err()}
-
 		case <-time.After(backOff):
 			logger.Info("re-attempting operation", zap.String("operation", operation), zap.Int("current-attempt", i), zap.Error(err))
 		}
 	}
-	return Result[T]{Err: errNumAttemptsExhausted}
+	logger.Error("all retries exhausted", zap.String("operation", operation), zap.Int("numAttempts", numAttempts))
+	return Result[T]{Value: resultVal, Err: err}
 }
 
 // AlwaysRetry ignores the error and always returns true. This can be used as a CanRetryPredicate when using Retry
