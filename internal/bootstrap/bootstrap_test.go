@@ -16,7 +16,7 @@ package bootstrap
 
 import (
 	"os"
-	"strings"
+	"path/filepath"
 	"syscall"
 	"testing"
 
@@ -24,12 +24,26 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var (
-	pwd, _           = os.Getwd()
-	exitCodeFilePath = pwd + "/../../test/exit_code"
-)
+func TestCleanupExitCodeFile(t *testing.T) {
+	table := []struct {
+		description string
+		testFn      func(*testing.T, string)
+	}{
+		{"cleanup exit code file when file exists", testCleanupExitCodeWhenFileExists},
+		{"cleanup exit code file when it does not exist", testCleanupExitCodeWhenFileDoesNotExists},
+	}
 
-func TestCleanupExitCodeWhenFileExists(t *testing.T) {
+	for _, entry := range table {
+		testDir := createTestDir(t)
+		exitCodeFilePath := filepath.Join(testDir, "exit_code")
+		t.Run(entry.description, func(t *testing.T) {
+			defer deleteTestDir(t, testDir)
+			entry.testFn(t, exitCodeFilePath)
+		})
+	}
+}
+
+func testCleanupExitCodeWhenFileExists(t *testing.T, exitCodeFilePath string) {
 	g := NewWithT(t)
 
 	// create exit code file
@@ -44,7 +58,7 @@ func TestCleanupExitCodeWhenFileExists(t *testing.T) {
 	g.Expect(err).ToNot(BeNil())
 }
 
-func TestCleanupExitCodeWhenFileDoesNotExists(t *testing.T) {
+func testCleanupExitCodeWhenFileDoesNotExists(t *testing.T, exitCodeFilePath string) {
 	g := NewWithT(t)
 	// check is exit_code file exists
 	// remove it if it does
@@ -58,17 +72,34 @@ func TestCleanupExitCodeWhenFileDoesNotExists(t *testing.T) {
 }
 
 func TestCaptureExitCode(t *testing.T) {
-	g := NewWithT(t)
-	//Test with os.Interrupt
-	CaptureExitCode(os.Interrupt, exitCodeFilePath)
 
-	//Check exit_code file
-	fileDataBytes, err := os.ReadFile(exitCodeFilePath)
-	g.Expect(err).To(BeNil())
-	g.Expect(strings.TrimSpace(string(fileDataBytes))).To(Equal(os.Interrupt.String()))
-	//Delete exit_code file
-	err = os.Remove(exitCodeFilePath)
-	g.Expect(err).To(BeNil())
+	table := []struct {
+		description             string
+		signal                  os.Signal
+		fileExpectedToBeCreated bool
+		expectedExitCode        string
+	}{
+		{"do nothing when signal is nil", nil, false, ""},
+		{"capture signal in exit code when it is not nil", os.Interrupt, true, os.Interrupt.String()},
+	}
+
+	for _, entry := range table {
+		testDir := createTestDir(t)
+		exitCodeFilePath := filepath.Join(testDir, "exit_code")
+		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
+			defer deleteTestDir(t, testDir)
+			CaptureExitCode(entry.signal, exitCodeFilePath)
+			if _, err := os.Stat(exitCodeFilePath); err != nil {
+				notFoundError := os.IsNotExist(err)
+				g.Expect(entry.fileExpectedToBeCreated).ToNot(Equal(notFoundError))
+			} else {
+				fileDataBytes, err := os.ReadFile(exitCodeFilePath)
+				g.Expect(err).To(BeNil())
+				g.Expect(entry.expectedExitCode).To(Equal(string(fileDataBytes)))
+			}
+		})
+	}
 }
 
 func TestGetValidationMode(t *testing.T) {
@@ -83,10 +114,13 @@ func TestGetValidationMode(t *testing.T) {
 		{"test: exit code having any other error string should result in full validation", "test", brclient.FullValidation},
 	}
 	for _, entry := range table {
+		testDir := createTestDir(t)
+		exitCodeFilePath := filepath.Join(testDir, "exit_code")
 		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
 			t.Log(entry.description)
 
-			g := NewWithT(t)
+			defer deleteTestDir(t, testDir)
 
 			// Create exit_code file
 			if entry.exitCode != "" {
@@ -95,11 +129,21 @@ func TestGetValidationMode(t *testing.T) {
 			}
 			validationMode := getValidationMode(exitCodeFilePath)
 			g.Expect(validationMode).To(Equal(entry.expectedValidationMode))
-			// Cleanup -> delete exit_code file
-			if entry.exitCode != "" {
-				err := os.Remove(exitCodeFilePath)
-				g.Expect(err).To(BeNil())
-			}
 		})
+	}
+}
+
+func createTestDir(t *testing.T) string {
+	g := NewWithT(t)
+	testDir, err := os.MkdirTemp("", "etcd-wrapper")
+	g.Expect(err).To(BeNil())
+	return testDir
+}
+
+func deleteTestDir(t *testing.T, testDir string) {
+	g := NewWithT(t)
+	if _, err := os.Stat(testDir); err == nil {
+		err = os.RemoveAll(testDir)
+		g.Expect(err).To(BeNil())
 	}
 }
