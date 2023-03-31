@@ -17,48 +17,27 @@ package brclient
 import (
 	"bytes"
 	"context"
-	"github.com/gardener/etcd-wrapper/internal/types"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/gardener/etcd-wrapper/internal/types"
 
 	. "github.com/onsi/gomega"
 )
 
 var (
-	pwd, _             = os.Getwd()
-	etcdConfigFilePath = pwd + "/../../test/etcd-config.yaml"
-	caFilePath         = pwd + "/../../test/CAFile.crt"
-	// sample ca file taken from https://go.dev/src/crypto/x509/x509_test.go
-	ca = `
------BEGIN CERTIFICATE-----
-MIIDBjCCAe6gAwIBAgIRANXM5I3gjuqDfTp/PYrs+u8wDQYJKoZIhvcNAQELBQAw
-EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0xODAzMjcxOTU2MjFaFw0xOTAzMjcxOTU2
-MjFaMBIxEDAOBgNVBAoTB0FjbWUgQ28wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
-ggEKAoIBAQDK+9m3rjsO2Djes6bIYQZ3eV29JF09ZrjOrEHLtaKrD6/acsoSoTsf
-cQr+rzzztdB5ijWXCS64zo/0OiqBeZUNZ67jVdToa9qW5UYe2H0Y+ZNdfA5GYMFD
-yk/l3/uBu3suTZPfXiW2TjEi27Q8ruNUIZ54DpTcs6y2rBRFzadPWwn/VQMlvRXM
-jrzl8Y08dgnYmaAHprxVzwMXcQ/Brol+v9GvjaH1DooHqkn8O178wsPQNhdtvN01
-IXL46cYdcUwWrE/GX5u+9DaSi+0KWxAPQ+NVD5qUI0CKl4714yGGh7feXMjJdHgl
-VG4QJZlJvC4FsURgCHJT6uHGIelnSwhbAgMBAAGjVzBVMA4GA1UdDwEB/wQEAwIF
-oDATBgNVHSUEDDAKBggrBgEFBQcDATAMBgNVHRMBAf8EAjAAMCAGA1UdEQQZMBeC
-FVRlc3RTeXN0ZW1DZXJ0UG9vbC5nbzANBgkqhkiG9w0BAQsFAAOCAQEAwuSRx/VR
-BKh2ICxZjL6jBwk/7UlU1XKbhQD96RqkidDNGEc6eLZ90Z5XXTurEsXqdm5jQYPs
-1cdcSW+fOSMl7MfW9e5tM66FaIPZl9rKZ1r7GkOfgn93xdLAWe8XHd19xRfDreub
-YC8DVqgLASOEYFupVSl76ktPfxkU5KCvmUf3P2PrRybk1qLGFytGxfyice2gHSNI
-gify3K/+H/7wCkyFW4xYvzl7WW4mXxoqPRPjQt1J423DhnnQ4G1P8V/vhUpXNXOq
-N9IEPnWuihC09cyx/WMQIUlWnaQLHdfpPS04Iez3yy2PdfXJzwfPrja7rNE+skK6
-pa/O1nF0AfWOpw==
------END CERTIFICATE-----
-	`
+	testdataPath       = "../testdata"
+	etcdCACertFilePath = filepath.Join(testdataPath, "ca.crt")
 )
 
 func TestSuit(t *testing.T) {
 	allTests := []struct {
 		name   string
-		testFn func(t *testing.T)
+		testFn func(t *testing.T, etcdConfigFilePath string)
 	}{
 		{"getEtcdConfig", testGetEtcdConfig},
 		{"getInitializationStatus", testGetInitializationStatus},
@@ -68,7 +47,26 @@ func TestSuit(t *testing.T) {
 	}
 
 	for _, entry := range allTests {
-		t.Run(entry.name, entry.testFn)
+		t.Run(entry.name, func(t *testing.T) {
+			etcdConfigFilePath := createEtcdConfigTempFile(t)
+			defer deleteEtcdConfigTempFile(t, etcdConfigFilePath)
+			entry.testFn(t, etcdConfigFilePath)
+		})
+	}
+}
+
+func createEtcdConfigTempFile(t *testing.T) string {
+	g := NewWithT(t)
+	etcdConfigFile, err := os.CreateTemp("", "etcd-config.*.yaml")
+	g.Expect(err).To(BeNil())
+	return etcdConfigFile.Name()
+}
+
+func deleteEtcdConfigTempFile(t *testing.T, etcdConfigFilePath string) {
+	g := NewWithT(t)
+	if _, err := os.Stat(etcdConfigFilePath); err == nil {
+		err = os.Remove(etcdConfigFilePath)
+		g.Expect(err).To(BeNil())
 	}
 }
 
@@ -78,7 +76,7 @@ func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req), nil
 }
 
-func testGetEtcdConfig(t *testing.T) {
+func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
 		description  string
 		responseCode int
@@ -93,13 +91,12 @@ func testGetEtcdConfig(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	defer deleteTestFiles(g)
 	for _, entry := range table {
 		t.Log(entry.description)
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brclient, err := NewClient(httpClient, "", etcdConfigFilePath)
+		brc, err := NewClient(httpClient, "", etcdConfigFilePath)
 		g.Expect(err).To(BeNil())
-		req, err := brclient.GetEtcdConfig(context.TODO())
+		req, err := brc.GetEtcdConfig(context.TODO())
 		if entry.expectError {
 			g.Expect(err).ToNot(BeNil())
 			g.Expect(req).To(Equal(""))
@@ -110,7 +107,7 @@ func testGetEtcdConfig(t *testing.T) {
 	}
 }
 
-func testGetInitializationStatus(t *testing.T) {
+func testGetInitializationStatus(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
 		description    string
 		responseCode   int
@@ -126,7 +123,6 @@ func testGetInitializationStatus(t *testing.T) {
 	}
 
 	g := NewWithT(t)
-	defer deleteTestFiles(g)
 	for _, entry := range table {
 		t.Log(entry.description)
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
@@ -138,7 +134,7 @@ func testGetInitializationStatus(t *testing.T) {
 	}
 }
 
-func testTriggerInitialization(t *testing.T) {
+func testTriggerInitialization(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
 		description  string
 		responseCode int
@@ -160,39 +156,17 @@ func testTriggerInitialization(t *testing.T) {
 	}
 }
 
-func TestNewDefaultClient(t *testing.T) {
-	incorrectCAFilePath := caFilePath + "/wrong-path"
+func testCreateSidecarClient(t *testing.T, _ string) {
+	incorrectCAFilePath := testdataPath + "/wrong-path"
 	table := []struct {
 		description   string
 		sidecarConfig types.SidecarConfig
 		expectError   bool
 	}{
-		{"test: return error when incorrect sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-		{"test: return backuprestore client when valid sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &caFilePath}, false},
+		{"test: return error when incorrect sidecar config (CA filepath) is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
+		{"test: return etcd client when valid sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
-	createTestCACertFiles(g)
-	defer deleteTestFiles(g)
-	for _, entry := range table {
-		t.Log(entry.description)
-		_, err := NewDefaultClient(entry.sidecarConfig, DefaultEtcdConfigFilePath)
-		g.Expect(err != nil).To(Equal(entry.expectError))
-	}
-}
-
-func testCreateSidecarClient(t *testing.T) {
-	incorrectCAFilePath := caFilePath + "/wrong-path"
-	table := []struct {
-		description   string
-		sidecarConfig types.SidecarConfig
-		expectError   bool
-	}{
-		{"test: return error when incorrect sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-		{"test: return etcd client when valid sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &caFilePath}, false},
-	}
-	g := NewWithT(t)
-	createTestCACertFiles(g)
-	defer deleteTestFiles(g)
 	for _, entry := range table {
 		t.Log(entry.description)
 		_, err := createSidecarClient(entry.sidecarConfig)
@@ -200,24 +174,40 @@ func testCreateSidecarClient(t *testing.T) {
 	}
 }
 
-func testCreateTLSConfig(t *testing.T) {
-	incorrectCAFilePath := caFilePath + "/wrong-path"
+func testCreateTLSConfig(t *testing.T, _ string) {
+	incorrectCAFilePath := testdataPath + "/wrong-path"
 	table := []struct {
 		description   string
 		sidecarConfig types.SidecarConfig
 		expectError   bool
 	}{
 		{"test: return valid insecure TLS config when sidecar config does not have TLS enabled", types.SidecarConfig{TLSEnabled: false}, false},
-		{"test: return valid TLS config when sidecar config has TLS enabled and valid CA file path", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &caFilePath}, false},
+		{"test: return valid TLS config when sidecar config has TLS enabled and valid CA file path", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
 		{"test: return error when sidecar config has TLS enabled and invalid CA file path", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
 	}
 
 	g := NewWithT(t)
-	createTestCACertFiles(g)
-	defer deleteTestFiles(g)
 	for _, entry := range table {
 		t.Log(entry.description)
 		_, err := createTLSConfig(entry.sidecarConfig)
+		g.Expect(err != nil).To(Equal(entry.expectError))
+	}
+}
+
+func TestNewDefaultClient(t *testing.T) {
+	incorrectCAFilePath := etcdCACertFilePath + "/wrong-path"
+	table := []struct {
+		description   string
+		sidecarConfig types.SidecarConfig
+		expectError   bool
+	}{
+		{"test: return error when incorrect sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
+		{"test: return backuprestore client when valid sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
+	}
+	g := NewWithT(t)
+	for _, entry := range table {
+		t.Log(entry.description)
+		_, err := NewDefaultClient(entry.sidecarConfig, DefaultEtcdConfigFilePath)
 		g.Expect(err != nil).To(Equal(entry.expectError))
 	}
 }
@@ -236,21 +226,5 @@ func getTestHttpClient(responseCode int, responseBody []byte) *http.Client {
 			}
 		}),
 		Timeout: 5 * time.Second,
-	}
-}
-
-func createTestCACertFiles(g *GomegaWithT) {
-	err := os.WriteFile(caFilePath, []byte(ca), 0644)
-	g.Expect(err).To(BeNil())
-}
-
-func deleteTestFiles(g *GomegaWithT) {
-	if _, err := os.Stat(etcdConfigFilePath); err == nil {
-		err = os.Remove(etcdConfigFilePath)
-		g.Expect(err).To(BeNil())
-	}
-	if _, err := os.Stat(caFilePath); err == nil {
-		err = os.Remove(caFilePath)
-		g.Expect(err).To(BeNil())
 	}
 }
