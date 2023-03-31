@@ -93,8 +93,10 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 
 // CaptureExitCode captures the exit signal into a file `exit_code`
 func CaptureExitCode(signal os.Signal, exitCodeFilePath string) {
-	interruptSignal := []byte(signal.String())
-	_ = os.WriteFile(exitCodeFilePath, interruptSignal, 0644)
+	if signal != nil {
+		interruptSignal := []byte(signal.String())
+		_ = os.WriteFile(exitCodeFilePath, interruptSignal, 0644)
+	}
 }
 
 // CleanupExitCode removes the `exit_code` file
