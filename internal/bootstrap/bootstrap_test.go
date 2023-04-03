@@ -15,14 +15,27 @@
 package bootstrap
 
 import (
+	"bytes"
+	"context"
+	"github.com/gardener/etcd-wrapper/internal/types"
+	"go.uber.org/zap"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/brclient"
 	. "github.com/onsi/gomega"
 )
+
+type TestRoundTripper func(req *http.Request) *http.Response
+
+func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
 
 func TestCleanupExitCodeFile(t *testing.T) {
 	table := []struct {
@@ -133,6 +146,71 @@ func TestGetValidationMode(t *testing.T) {
 	}
 }
 
+func TestTryGetEtcdConfig(t *testing.T) {
+	table := []struct {
+		description        string
+		serverReturnsError bool
+		expectError        bool
+	}{
+		{"test: should not return error when etcd config is returned", false, false},
+		{"test: should return error when invalid etcd config is returned", true, true},
+	}
+	for _, entry := range table {
+		testDir := createTestDir(t)
+		etcdConfigFilePath := filepath.Join(testDir, "etcdConfig.yaml")
+		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
+			t.Log(entry.description)
+
+			var httpClient *http.Client
+			defer deleteTestDir(t, testDir)
+
+			if entry.serverReturnsError {
+				httpClient = getTestHttpClient(http.StatusNotFound, []byte("invalid config"))
+			} else {
+				httpClient = getTestHttpClient(http.StatusOK, []byte(""))
+			}
+
+			brc, err := brclient.NewClient(httpClient, "", etcdConfigFilePath)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			loggerConfig := zap.NewDevelopmentConfig()
+			lgr, err := loggerConfig.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			i := initializer{brClient: brc, logger: lgr}
+			_, err = i.tryGetEtcdConfig(context.TODO(), 5, time.Second)
+			g.Expect(err != nil).To(Equal(entry.expectError))
+		})
+	}
+}
+
+func TestNewEtcdInitializer(t *testing.T) {
+	table := []struct {
+		description   string
+		sidecarConfig types.SidecarConfig
+		expectError   bool
+	}{
+		{"test: should return error when invalid sidecar config is passed", createSidecarConfig(true, "", ""), true},
+		{"test: should return error when br client creation fails", createSidecarConfig(true, ":2379", "/wrong/file/path"), true},
+		{"test: should not return error when sidecar config is valid and br client creation succeeds", createSidecarConfig(false, ":2379", ""), false},
+	}
+
+	for _, entry := range table {
+		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
+			t.Log(entry.description)
+
+			loggerConfig := zap.NewDevelopmentConfig()
+			lgr, err := loggerConfig.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+
+			_, err = NewEtcdInitializer(&entry.sidecarConfig, lgr)
+			g.Expect(err != nil).To(Equal(entry.expectError))
+		})
+	}
+}
+
 func createTestDir(t *testing.T) string {
 	g := NewWithT(t)
 	testDir, err := os.MkdirTemp("", "etcd-wrapper")
@@ -145,5 +223,30 @@ func deleteTestDir(t *testing.T, testDir string) {
 	if _, err := os.Stat(testDir); err == nil {
 		err = os.RemoveAll(testDir)
 		g.Expect(err).To(BeNil())
+	}
+}
+
+func getTestHttpClient(responseCode int, responseBody []byte) *http.Client {
+	return &http.Client{
+		Transport: TestRoundTripper(func(req *http.Request) *http.Response {
+			var contentLen int64
+			if responseBody != nil {
+				contentLen = int64(len(responseBody))
+			}
+			return &http.Response{
+				StatusCode:    responseCode,
+				Body:          io.NopCloser(bytes.NewReader(responseBody)),
+				ContentLength: contentLen,
+			}
+		}),
+		Timeout: 5 * time.Second,
+	}
+}
+
+func createSidecarConfig(tlsEnabled bool, hostPort string, caCertBundlePath string) types.SidecarConfig {
+	return types.SidecarConfig{
+		HostPort:         hostPort,
+		TLSEnabled:       tlsEnabled,
+		CaCertBundlePath: &caCertBundlePath,
 	}
 }

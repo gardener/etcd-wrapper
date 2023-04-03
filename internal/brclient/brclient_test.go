@@ -78,23 +78,32 @@ func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
-		description  string
-		responseCode int
-		responseBody []byte
-		expectError  bool
+		description             string
+		responseCode            int
+		responseBody            []byte
+		validSidecarBaseAddress bool
+		expectError             bool
 	}{
-		{"test: 200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), false},
-		{"test: 202 response code should return a valid etcd config", http.StatusAccepted, []byte("give me a valid etcd config"), false},
-		{"test: 201 response code should return a valid etcd config", http.StatusCreated, []byte("give me a valid etcd config"), false},
-		{"test: 208 response code should return an error", http.StatusAlreadyReported, []byte("give me a valid etcd config"), true},
-		{"test: 400 response code should return an error", http.StatusBadRequest, []byte("give me a valid etcd config"), true},
+		{"test: 200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), true, false},
+		{"test: 202 response code should return a valid etcd config", http.StatusAccepted, []byte("give me a valid etcd config"), true, false},
+		{"test: 201 response code should return a valid etcd config", http.StatusCreated, []byte("give me a valid etcd config"), true, false},
+		{"test: 208 response code should return an error", http.StatusAlreadyReported, []byte("give me a valid etcd config"), true, true},
+		{"test: 400 response code should return an error", http.StatusBadRequest, []byte("give me a valid etcd config"), true, true},
+		{"test: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
 	}
 
 	g := NewWithT(t)
 	for _, entry := range table {
 		t.Log(entry.description)
+		var sidecarBaseAddress string
+		if entry.validSidecarBaseAddress {
+			sidecarBaseAddress = ""
+		} else {
+			sidecarBaseAddress = "//~*wrong{}"
+		}
+
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brc, err := NewClient(httpClient, "", etcdConfigFilePath)
+		brc, err := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
 		g.Expect(err).To(BeNil())
 		req, err := brc.GetEtcdConfig(context.TODO())
 		if entry.expectError {
@@ -109,24 +118,33 @@ func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 
 func testGetInitializationStatus(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
-		description    string
-		responseCode   int
-		responseBody   []byte
-		expectError    bool
-		expectedStatus InitStatus
+		description             string
+		responseCode            int
+		responseBody            []byte
+		validSidecarBaseAddress bool
+		expectError             bool
+		expectedStatus          InitStatus
 	}{
-		{"test: `New` initialization status returned by server should result in `New`", http.StatusOK, []byte(New.String()), false, New},
-		{"test: `InProgress` initialization status returned by server should result in `InProgress`", http.StatusOK, []byte(InProgress.String()), false, InProgress},
-		{"test: `Successful` initialization status returned by server should result in  Successful", http.StatusOK, []byte(Successful.String()), false, Successful},
-		{"test: Unknown initialization status returned by server should result in `InProgress`", http.StatusOK, []byte("error response"), false, InProgress},
-		{"test: bad response from server should result in `Unknown`", http.StatusBadRequest, []byte("error response"), true, Unknown},
+		{"test: `New` initialization status returned by server should result in `New`", http.StatusOK, []byte(New.String()), true, false, New},
+		{"test: `InProgress` initialization status returned by server should result in `InProgress`", http.StatusOK, []byte(InProgress.String()), true, false, InProgress},
+		{"test: `Successful` initialization status returned by server should result in  Successful", http.StatusOK, []byte(Successful.String()), true, false, Successful},
+		{"test: Unknown initialization status returned by server should result in `InProgress`", http.StatusOK, []byte("error response"), true, false, InProgress},
+		{"test: bad response from server should result in `Unknown`", http.StatusBadRequest, []byte("error response"), true, true, Unknown},
+		{"test: when sidecar base address is invalid should return an error and result in `Unknown`", http.StatusBadRequest, []byte("error response"), false, true, Unknown},
 	}
 
 	g := NewWithT(t)
 	for _, entry := range table {
 		t.Log(entry.description)
+		var sidecarBaseAddress string
+		if entry.validSidecarBaseAddress {
+			sidecarBaseAddress = ""
+		} else {
+			sidecarBaseAddress = "//~*wrong{}"
+		}
+
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brclient, err := NewClient(httpClient, "", etcdConfigFilePath)
+		brclient, err := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
 		g.Expect(err).To(BeNil())
 		req, err := brclient.GetInitializationStatus(context.TODO())
 		g.Expect(err != nil).To(Equal(entry.expectError))
@@ -136,20 +154,29 @@ func testGetInitializationStatus(t *testing.T, etcdConfigFilePath string) {
 
 func testTriggerInitialization(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
-		description  string
-		responseCode int
-		responseBody []byte
-		expectError  bool
+		description             string
+		responseCode            int
+		responseBody            []byte
+		validSidecarBaseAddress bool
+		expectError             bool
 	}{
-		{"test: server returning a valid response should not result in an error", http.StatusOK, []byte("valid server response"), false},
-		{"test: server returning an error code should result in an error", http.StatusBadRequest, []byte("invalid server response"), true},
+		{"test: server returning a valid response should not result in an error", http.StatusOK, []byte("valid server response"), true, false},
+		{"test: server returning an error code should result in an error", http.StatusBadRequest, []byte("invalid server response"), true, true},
+		{"test: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
 	}
 
 	for _, entry := range table {
 		t.Log(entry.description)
 		g := NewWithT(t)
+		var sidecarBaseAddress string
+		if entry.validSidecarBaseAddress {
+			sidecarBaseAddress = ""
+		} else {
+			sidecarBaseAddress = "//~*wrong{}"
+		}
+
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brclient, err := NewClient(httpClient, "", etcdConfigFilePath)
+		brclient, err := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
 		g.Expect(err).To(BeNil())
 		err = brclient.TriggerInitialization(context.TODO(), FullValidation)
 		g.Expect(err != nil).To(Equal(entry.expectError))
