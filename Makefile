@@ -21,7 +21,7 @@ clean:
 
 #-count=1 needed so that test results are not cached
 .PHONY: test
-test:
+test: $(CFSSL)
 	@./hack/test.sh
 
 .PHONY: revendor
