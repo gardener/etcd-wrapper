@@ -23,7 +23,7 @@ import (
 
 var (
 	testdataPath       = "../testdata"
-	etcdCACertFilePath = filepath.Join(testdataPath, "ca.crt")
+	etcdCACertFilePath = filepath.Join(testdataPath, "ca.pem")
 )
 
 func TestCreateCACertPool(t *testing.T) {

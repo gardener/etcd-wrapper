@@ -31,7 +31,7 @@ import (
 
 var (
 	testdataPath       = "../testdata"
-	etcdCACertFilePath = filepath.Join(testdataPath, "ca.crt")
+	etcdCACertFilePath = filepath.Join(testdataPath, "ca.pem")
 )
 
 func TestSuit(t *testing.T) {
