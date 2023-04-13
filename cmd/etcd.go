@@ -68,8 +68,5 @@ func InitAndStartEtcd(ctx context.Context, cancelFn context.CancelFunc, logger *
 	if err := etcdApp.Setup(); err != nil {
 		return err
 	}
-	if err := etcdApp.Start(); err != nil {
-		return err
-	}
-	return nil
+	return etcdApp.Start()
 }
