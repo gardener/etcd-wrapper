@@ -38,8 +38,7 @@ func main() {
 	checkArgs(args)
 	logger, err := bootstrap.SetupLogger(defaultLogLevel)
 	if err != nil {
-		log.Printf("error creating zap logger %v", err)
-		os.Exit(1)
+		log.Fatalf("error creating zap logger %v", err)
 	}
 
 	ctx, cancelFn := signal.SetupHandler(logger, bootstrap.CaptureExitCode, types.DefaultExitCodeFilePath)
@@ -55,7 +54,6 @@ func main() {
 	// InitAndStartEtcd command
 	if err = cmd.EtcdCmd.Run(ctx, cancelFn, logger); err != nil {
 		logger.Fatal("error during start or run of etcd", zap.Error(err))
-		os.Exit(1)
 	}
 }
 
@@ -63,8 +61,8 @@ func main() {
 func checkArgs(args []string) {
 	//check if any unsupported command is specified. Print help if that is the case
 	if len(args) < 1 || !cmd.IsCommandSupported(args[0]) {
-		cmd.PrintHelp(os.Stdout)
-		os.Exit(0)
+		cmd.PrintHelp(os.Stderr)
+		os.Exit(1)
 	}
 }
 
@@ -74,5 +72,5 @@ func printFlags(logger *zap.Logger) {
 		flagsToPrint += fmt.Sprintf("%s: %s, ", f.Name, f.Value)
 	})
 
-	logger.Info(fmt.Sprintf("Running with flags: %s", flagsToPrint[:len(flagsToPrint)-2]))
+	logger.Info(fmt.Sprintf("Running with flags: %s", strings.TrimSuffix(flagsToPrint, ", ")))
 }
