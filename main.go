@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gardener/etcd-wrapper/internal/types"
 
@@ -71,6 +72,5 @@ func printFlags(logger *zap.Logger) {
 	flag.VisitAll(func(f *flag.Flag) {
 		flagsToPrint += fmt.Sprintf("%s: %s, ", f.Name, f.Value)
 	})
-
 	logger.Info(fmt.Sprintf("Running with flags: %s", strings.TrimSuffix(flagsToPrint, ", ")))
 }
