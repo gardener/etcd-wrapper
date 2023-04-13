@@ -17,9 +17,7 @@ set -e
 
 SOURCE_PATH="$(readlink -f "$(dirname "${BASH_SOURCE[0]}")/..")"
 BINARY_PATH="${SOURCE_PATH}/bin"
-if [[ -z "${BINARY_PATH}" ]]; then
-  mkdir -p "$BINARY_PATH"
-fi
+mkdir -p "$BINARY_PATH"
 
 echo "> Build..."
 

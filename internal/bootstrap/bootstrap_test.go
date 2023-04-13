@@ -17,8 +17,6 @@ package bootstrap
 import (
 	"bytes"
 	"context"
-	"github.com/gardener/etcd-wrapper/internal/types"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"os"
@@ -26,6 +24,10 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/gardener/etcd-wrapper/internal/types"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 
 	"github.com/gardener/etcd-wrapper/internal/brclient"
 	. "github.com/onsi/gomega"
@@ -116,6 +118,7 @@ func TestCaptureExitCode(t *testing.T) {
 }
 
 func TestGetValidationMode(t *testing.T) {
+	logger := zaptest.NewLogger(t)
 	table := []struct {
 		description            string
 		exitCode               string
@@ -140,7 +143,7 @@ func TestGetValidationMode(t *testing.T) {
 				err := os.WriteFile(exitCodeFilePath, []byte(entry.exitCode), 0644)
 				g.Expect(err).To(BeNil())
 			}
-			validationMode := getValidationMode(exitCodeFilePath)
+			validationMode := determineValidationMode(exitCodeFilePath, logger)
 			g.Expect(validationMode).To(Equal(entry.expectedValidationMode))
 		})
 	}

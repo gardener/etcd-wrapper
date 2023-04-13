@@ -75,7 +75,7 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 		}
 		i.logger.Info("Fetched initialization status", zap.String("Status", initStatus.String()))
 		if initStatus == brclient.New {
-			validationMode := getValidationMode(types.DefaultExitCodeFilePath)
+			validationMode := determineValidationMode(types.DefaultExitCodeFilePath, i.logger)
 			if err = i.brClient.TriggerInitialization(ctx, validationMode); err != nil {
 				i.logger.Error("error while triggering initialization to backup-restore", zap.Error(err))
 			}
@@ -122,17 +122,21 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 	return embed.ConfigFromFile(etcdConfigFilePath)
 }
 
-func getValidationMode(exitCodeFilePath string) brclient.ValidationType {
-	if _, err := os.Stat(exitCodeFilePath); err == nil {
+func determineValidationMode(exitCodeFilePath string, logger *zap.Logger) brclient.ValidationType {
+	var err error
+	if _, err = os.Stat(exitCodeFilePath); err == nil {
 		data, err := os.ReadFile(exitCodeFilePath)
 		if err != nil {
+			logger.Error("error in reading exitCodeFile, assuming full-validation to be done.", zap.String("exitCodeFilePath", exitCodeFilePath), zap.Error(err))
 			return brclient.FullValidation
 		}
 		validationMarker := strings.TrimSpace(string(data))
 		if validationMarker == "terminated" || validationMarker == "interrupt" {
+			logger.Info("last captured exit code read, assuming sanity validation to be done.", zap.String("exitCodeFilePath", exitCodeFilePath), zap.String("signal-captured", validationMarker))
 			return brclient.SanityValidation
 		}
 	}
+	logger.Error("error in checking if exitCodeFile exists, assuming full-validation to be done.", zap.String("exitCodeFilePath", exitCodeFilePath), zap.Error(err))
 	// Full validation if error
 	return brclient.FullValidation
 }
