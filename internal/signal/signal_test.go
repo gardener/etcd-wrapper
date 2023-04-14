@@ -20,11 +20,12 @@ func TestSetupSignalHandler(t *testing.T) {
 		receivedSignal string
 		err            error
 	)
-	callbackFn := func(signal os.Signal, _ string) {
+	callbackFn := func(signal os.Signal, _ string) error {
 		if signal != nil {
 			fmt.Println("callback called.")
 			receivedSignal = signal.String()
 		}
+		return nil
 	}
 
 	ctx, _ := SetupHandler(logger, callbackFn, "")

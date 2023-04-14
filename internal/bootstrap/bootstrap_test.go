@@ -93,18 +93,25 @@ func TestCaptureExitCode(t *testing.T) {
 		signal                  os.Signal
 		fileExpectedToBeCreated bool
 		expectedExitCode        string
+		expectError             bool
 	}{
-		{"do nothing when signal is nil", nil, false, ""},
-		{"capture signal in exit code when it is not nil", os.Interrupt, true, os.Interrupt.String()},
+		{"do nothing when signal is nil", nil, false, "", false},
+		{"capture signal in exit code when it is not nil", os.Interrupt, true, os.Interrupt.String(), false},
+		{"return error when WriteFile fails", os.Interrupt, false, os.Interrupt.String(), true},
 	}
 
 	for _, entry := range table {
 		testDir := createTestDir(t)
-		exitCodeFilePath := filepath.Join(testDir, "exit_code")
+		var exitCodeFilePath string
+		if entry.expectError {
+			exitCodeFilePath = filepath.Join(testDir, "folder/exit_code")
+		} else {
+			exitCodeFilePath = filepath.Join(testDir, "exit_code")
+		}
 		t.Run(entry.description, func(t *testing.T) {
 			g := NewWithT(t)
 			defer deleteTestDir(t, testDir)
-			g.Expect(CaptureExitCode(entry.signal, exitCodeFilePath)).Should(Succeed())
+			g.Expect(CaptureExitCode(entry.signal, exitCodeFilePath) != nil).To(Equal(entry.expectError))
 			if _, err := os.Stat(exitCodeFilePath); err != nil {
 				notFoundError := os.IsNotExist(err)
 				g.Expect(entry.fileExpectedToBeCreated).ToNot(Equal(notFoundError))
