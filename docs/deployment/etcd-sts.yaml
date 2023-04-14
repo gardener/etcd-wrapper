@@ -1,0 +1,114 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      instance: etcd-test
+      name: etcd
+  serviceName: etcd-test-peer
+  template:
+    metadata:
+      labels:
+        instance: etcd-test
+        name: etcd
+    spec:
+      containers:
+        - command:
+            - /etcd-wrapper
+            - start-etcd
+            - --tls-enabled=false
+          image: aaronfernandes/etcd-wrapper:doc-10
+          imagePullPolicy: IfNotPresent
+          name: etcd
+          ports:
+            - containerPort: 2380
+              name: server
+              protocol: TCP
+            - containerPort: 2379
+              name: client
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/etcd/data/
+              name: etcd-main
+        - command:
+            - etcdbrctl
+            - server
+            - --defragmentation-schedule=1-59 * * * *
+            - --schedule=42 16 * * *
+            - --garbage-collection-policy=Exponential
+            - --data-dir=/var/etcd/data/new.etcd
+            - --restoration-temp-snapshots-dir=/var/etcd/restoration.temp
+            - --embedded-etcd-quota-bytes=8589934592
+            - --insecure-transport=true
+            - --insecure-skip-tls-verify=true
+            - --endpoints=http://etcd-test-local:2379
+            - --service-endpoints=http://etcd-test-client:2379
+            - --etcd-connection-timeout=5m
+            - --delta-snapshot-period=1m0s
+            - --delta-snapshot-memory-limit=104857600
+            - --garbage-collection-period=12h0m0s
+            - --compress-snapshots=true
+            - --compression-policy=gzip
+            - --auto-compaction-mode=periodic
+            - --auto-compaction-retention=30m
+            - --etcd-snapshot-timeout=15m
+            - --etcd-defrag-timeout=15m
+            - --snapstore-temp-directory=/var/etcd/data/temp
+            - --enable-member-lease-renewal=true
+            - --k8s-heartbeat-duration=10s
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: eu.gcr.io/gardener-project/gardener/etcdbrctl:v0.23.0
+          imagePullPolicy: IfNotPresent
+          name: backup-restore
+          ports:
+            - containerPort: 8080
+              name: server
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/etcd/data
+              name: etcd-test
+            - mountPath: /var/etcd/config/
+              name: etcd-config-file
+      hostAliases:
+        - hostnames:
+            - etcd-test-local
+          ip: 127.0.0.1
+      serviceAccount: etcd-test
+      serviceAccountName: etcd-test
+      volumes:
+        - configMap:
+            defaultMode: 420
+            items:
+              - key: etcd.conf.yaml
+                path: etcd.conf.yaml
+            name: etcd-bootstrap-0ef247
+          name: etcd-config-file
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: etcd-test
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 16Gi
+        volumeMode: Filesystem
