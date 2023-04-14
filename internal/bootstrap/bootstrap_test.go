@@ -104,7 +104,7 @@ func TestCaptureExitCode(t *testing.T) {
 		t.Run(entry.description, func(t *testing.T) {
 			g := NewWithT(t)
 			defer deleteTestDir(t, testDir)
-			CaptureExitCode(entry.signal, exitCodeFilePath)
+			g.Expect(CaptureExitCode(entry.signal, exitCodeFilePath)).Should(Succeed())
 			if _, err := os.Stat(exitCodeFilePath); err != nil {
 				notFoundError := os.IsNotExist(err)
 				g.Expect(entry.fileExpectedToBeCreated).ToNot(Equal(notFoundError))
