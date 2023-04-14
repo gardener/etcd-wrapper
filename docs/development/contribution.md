@@ -76,15 +76,17 @@ Before raising a pull request ensure that if you are introducing any new file th
 To raise a pull request do the following:
 1. Create a fork of [etcd-wrapper](https://github.com/gardener/etcd-wrapper)
 2. Add [etcd-wrapper](https://github.com/gardener/etcd-wrapper) as upstream remote via
- ```bash 
-    git remote add upstream https://github.com/gardener/etcd-wrapper
- ```
+    ```bash 
+      git remote add upstream https://github.com/gardener/etcd-wrapper
+    ```
 3. It is recommended that you create a git branch and push all your changes for the pull-request.
-4. Ensure that while you work on your pull-request, you continue to rebase the changes from upstream to your branch. To do that execute the following command:
-```bash
-   git pull --rebase upstream master
-```
-5. We prefer clean commits. If you have multiple commits in the pull-request, then squash the commits to a single commit. You can do this via `interactive git rebase` command. For example if your PR branch is ahead of remote origin HEAD by 5 commits then you can execute the following command and pick the first commit and squash the remaining commits.
-```bash
-   git rebase -i HEAD~5 #actual number from the head will depend upon how many commits your branch is ahead of remote origin master
-```
+   4. Ensure that while you work on your pull-request, you continue to rebase the changes from upstream to your branch. To do that execute the following command:
+   ```bash
+      git pull --rebase upstream master
+    ```
+5. We prefer clean commits. If you have multiple commits in the pull-request, then squash the commits to a single commit. There are two ways to do this:
+* You can keep all the commits as is and once the PR has been reviewed, the maintainer can use `squash and merge` functionality offered natively by github. 
+* If you wish to squash your own commits, then you can do this via `interactive git rebase` command. For example if your PR branch is ahead of remote origin HEAD by 5 commits then you can execute the following command and pick the first commit and squash the remaining commits.
+    ```bash
+      git rebase -i HEAD~5 #actual number from the head will depend upon how many commits your branch is ahead of remote origin master
+    ```

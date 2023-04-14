@@ -24,7 +24,7 @@ spec:
             - /etcd-wrapper
             - start-etcd
             - --tls-enabled=false
-          image: aaronfernandes/etcd-wrapper:doc-10
+          image: etcd-wrapper-image:dev # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
           name: etcd
           ports:
@@ -74,7 +74,7 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-          image: eu.gcr.io/gardener-project/gardener/etcdbrctl:v0.23.0
+          image: eu.gcr.io/gardener-project/gardener/etcdbrctl:v0.23.0 # you can replace this if you have your own version of etcd-backup-restore image.
           imagePullPolicy: IfNotPresent
           name: backup-restore
           ports:
