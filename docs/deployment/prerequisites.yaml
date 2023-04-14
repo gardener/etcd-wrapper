@@ -1,0 +1,219 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test-client
+  namespace: default
+spec:
+  clusterIP: 100.104.156.34
+  clusterIPs:
+    - 100.104.156.34
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: client
+      port: 2379
+      protocol: TCP
+      targetPort: 2379
+    - name: server
+      port: 2380
+      protocol: TCP
+      targetPort: 2380
+    - name: backuprestore
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+  selector:
+    instance: etcd-test
+    name: etcd
+  sessionAffinity: None
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test-peer
+  namespace: default
+spec:
+  clusterIP: None
+  clusterIPs:
+    - None
+  internalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  ports:
+    - name: peer
+      port: 2380
+      protocol: TCP
+      targetPort: 2380
+  publishNotReadyAddresses: true
+  selector:
+    instance: etcd-test
+    name: etcd
+  sessionAffinity: None
+  type: ClusterIP
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: druid.gardener.cloud:etcd:etcd-test
+  namespace: default
+rules:
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - list
+      - get
+      - update
+      - patch
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - get
+      - list
+      - watch
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: druid.gardener.cloud:etcd:etcd-test
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: druid.gardener.cloud:etcd:etcd-test
+subjects:
+  - kind: ServiceAccount
+    name: etcd-test
+    namespace: default
+
+---
+
+apiVersion: v1
+automountServiceAccountToken: true
+kind: ServiceAccount
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test
+  namespace: default
+
+---
+
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test-0
+  namespace: default
+spec:
+  holderIdentity: 14a4cf5c19ba5ddd:Leader
+  renewTime: ""
+
+---
+
+apiVersion: v1
+data:
+  etcd.conf.yaml: |-
+    # Human-readable name for this member.
+        name: etcd-0ef247
+        # Path to the data directory.
+        data-dir: /var/etcd/data/new.etcd
+        # metrics configuration
+        metrics: extensive
+        # Number of committed transactions to trigger a snapshot to disk.
+        snapshot-count: 75000
+
+        # Accept etcd V2 client requests
+        enable-v2: false
+        # Raise alarms when backend size exceeds the given quota. 0 means use the
+        # default quota.
+        quota-backend-bytes: 8589934592
+        # List of comma separated URLs to listen on for client traffic.
+        listen-client-urls: http://0.0.0.0:2379
+
+        # List of this member's client URLs to advertise to the public.
+        # The URLs needed to be a comma-separated list.
+        advertise-client-urls: http@etcd-test-peer@default@2379
+        # List of comma separated URLs to listen on for peer traffic.
+        listen-peer-urls: http://0.0.0.0:2380
+
+        # List of this member's peer URLs to advertise to the public.
+        # The URLs needed to be a comma-separated list.
+        initial-advertise-peer-urls: http@etcd-test-peer@default@2380
+
+        # Initial cluster token for the etcd cluster during bootstrap.
+        initial-cluster-token: etcd-cluster
+
+        # Initial cluster state ('new' or 'existing').
+        initial-cluster-state: new
+
+        # Initial cluster
+        initial-cluster: etcd-test-0=http://etcd-test-0.etcd-test-peer.default.svc:2380
+
+        # auto-compaction-mode ("periodic" or "revision").
+        auto-compaction-mode: periodic
+        # auto-compaction-retention defines Auto compaction retention length for etcd.
+        auto-compaction-retention: 30m
+kind: ConfigMap
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-bootstrap-0ef247
+  namespace: default
+
+---
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test
+  namespace: default
+spec:
+  minAvailable: 0
+  selector:
+    matchLabels:
+      instance: etcd-test
+      name: etcd
