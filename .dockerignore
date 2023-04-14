@@ -7,8 +7,11 @@
 !cmd/
 !hack/
 !vendor/
+!internal/
+!bin/
 !.golangci.yaml
 !go.mod
 !go.sum
+!main.go
 !Makefile
 !VERSION
