@@ -35,15 +35,18 @@ DESCRIPTION:
 )
 
 // PrintHelp prints out help test for the start-etcd command
-func PrintHelp(w io.Writer) {
+func PrintHelp(w io.Writer) error {
 	bufW := bufio.NewWriter(w)
-	executeTemplate(w, cliHelpTemplate, EtcdCmd)
-	_ = bufW.Flush()
+	defer func() {
+		_ = bufW.Flush()
+	}()
+	return executeTemplate(w, cliHelpTemplate, EtcdCmd)
 }
 
-func executeTemplate(w io.Writer, tmplText string, tmplData interface{}) {
+func executeTemplate(w io.Writer, tmplText string, tmplData interface{}) error {
 	tmpl := template.Must(template.New("usage").Parse(tmplText))
 	if err := tmpl.Execute(w, tmplData); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
