@@ -62,7 +62,7 @@ func main() {
 func checkArgs(args []string) {
 	//check if any unsupported command is specified. Print help if that is the case
 	if len(args) < 1 || !cmd.IsCommandSupported(args[0]) {
-		cmd.PrintHelp(os.Stderr)
+		_ = cmd.PrintHelp(os.Stderr)
 		os.Exit(1)
 	}
 }
