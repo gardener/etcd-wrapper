@@ -5,6 +5,7 @@
 
 ## Deployment
 * [Setup & Usage](deployment/setup-and-usage.md)
+* [Operations & debugging](deployment/ops.md)
 
 ## Development
 * [Testing](development/testing.md)
