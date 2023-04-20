@@ -87,7 +87,7 @@ You now have a kind cluster ready and can proceed to building an image and deplo
 4. Apply etcd statefulset
    
    ```bash
-     kubectl apply -f docs/deployment/etcd-sts.yaml 
+     kubectl apply -f example/etcd-sts.yaml 
    ```
 
 ### Cleanup
@@ -97,3 +97,54 @@ When you are done, you can clean up the entire setup by deleting the kind cluste
 ```bash
 kind delete cluster
 ```
+
+
+## Setup TLS in etcd-wrapper
+
+The steps outlined above sets up etcd *without* TLS
+
+To use etcd-wrapper with TLS, follow the following steps
+
+> The steps assume that the same CA is used to generate all secrets. If you prefer using different CAs, please pass the CAs accordingly
+
+#### Setup secrets
+
+1. Use the script in `hack/pki_gen.sh` can be used to generate test secrets
+
+   The same secrets can be used for etcd as well as backup-restore. However, you can also go ahead and generate a different set of secrets for etcd-backup-restore if you desire.
+
+   > If you prefer manually creating secrets for testing, please see [here](https://github.com/gardener/etcd-backup-restore/blob/master/doc/usage/generating_ssl_certificates.md)
+
+2. Generate `base64` strings from the certificates you generated above
+
+   ```bash
+   base64 -i <filepath of certificate file>
+   ```
+
+3. Add the generated `base64` strings into the secret objects in `example/etcd-secrets.yaml`
+
+4. Apply the secrets to your kubernetes cluster
+   ```bash
+   kubectl apply -f example/etcd-secrets.yaml
+   ```
+
+#### Update the configmap
+
+1. Uncomment `client-transport-security` from `etcd-configmap.yaml` to have a configmap that contains secrets for etcd
+
+2. Apply the config map for etcd
+
+   ```bash
+   kubectl apply -f example/etcd-configmap.yaml 
+   ```
+
+#### Add TLS to the application
+
+1. Uncomment the extra TLS flags and volume mounts that are part of `example/etcd-sts.yaml`
+
+2. Apply the etcd statefulset
+
+   ```bash
+   kubectl apply -f example/etcd-sts.yaml
+   ```
+
