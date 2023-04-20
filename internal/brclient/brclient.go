@@ -42,7 +42,7 @@ const (
 )
 
 // DefaultEtcdConfigFilePath defines the default file path for the etcd configuration file
-const DefaultEtcdConfigFilePath = "/etc/etcd.conf.yaml" //"/Users/I544000/go/src/github.tools.sap/I062009/etcd-bootstrapper/etcd-config-test.yaml"
+const DefaultEtcdConfigFilePath = "/etc/etcd.conf.yaml"
 
 //go:generate stringer -type=InitStatus
 
@@ -122,11 +122,12 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 	}
 	initializationStatus := string(bodyBytes)
 
-	if initializationStatus == New.String() {
+	switch initializationStatus {
+	case New.String():
 		return New, nil
-	} else if initializationStatus == Successful.String() {
+	case Successful.String():
 		return Successful, nil
-	} else {
+	default:
 		return InProgress, nil
 	}
 }

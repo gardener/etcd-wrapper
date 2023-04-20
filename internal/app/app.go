@@ -105,7 +105,7 @@ func (a *Application) Start() error {
 // Close closes resources(e.g. etcd client) and cancels the context if not already done so.
 func (a *Application) Close() {
 	if err := a.etcdClient.Close(); err != nil {
-		a.logger.Error("failed to close etcd client: %v", zap.Error(err))
+		a.logger.Error("failed to close etcd client", zap.Error(err))
 	}
 	a.cancelContext()
 }

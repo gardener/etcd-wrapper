@@ -68,15 +68,24 @@ func (a *Application) SetupReadinessProbe() {
 	}
 }
 
-// queryAndUpdateEtcdReadiness queries the etcd DB and updates the status of the query into the etcdStatus struct
+// queryAndUpdateEtcdReadiness periodically queries the etcd DB to check its readiness and updates the status
+// of the query into the etcdStatus struct. It stops querying when the application context is cancelled.
 func (a *Application) queryAndUpdateEtcdReadiness() {
+	// Create a ticker to periodically query etcd readiness
+	ticker := time.NewTicker(etcdQueryInterval)
+	defer ticker.Stop()
+
 	for {
+		// Query etcd readiness and update the status
 		etcdReady = a.isEtcdReady()
+
 		select {
+		// Stop querying and return when the context is cancelled
 		case <-a.ctx.Done():
 			a.logger.Error("stopped periodic DB query: context cancelled", zap.Error(a.ctx.Err()))
 			return
-		case <-time.After(etcdQueryInterval):
+		// Wait for the next tick before querying again
+		case <-ticker.C:
 		}
 	}
 }
