@@ -57,5 +57,3 @@ Start phase mainly comprises of two steps:
 ### Terminating phase
 
 `etcd-wrapper` can either terminate gracefully or un-gracefully (panics). In either of these cases an attempt is made to capture the exit code.  In case of a graceful termination application context is cancelled which gracefully terminates any go-routines and releases resources.
-
-1. 
