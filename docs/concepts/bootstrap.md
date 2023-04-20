@@ -2,7 +2,7 @@
 
 ## Overview
 
-The purpose of this document is to explain the start-up and shutdown-down phases of etcd-wrapper starts.
+The purpose of this document is to explain the start-up and shutdown-down phases of etcd-wrapper.
 
 > Etcd-wrapper is not designed to run as a stand-alone application, but in tandem with [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) which runs as a sidecar. This sidecar performs operations to support etcd such as data directory initialization and restoration, regular data directory defragmentation, automatic backups, etc.
 
