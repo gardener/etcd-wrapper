@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	defaultTestHostPort         = "locahost:2379"
+	defaultTestHostPort         = "localhost:2379"
 	defaultTestCaCertBundlePath = "/var/etcd/ssl/client/ca/cabundle.crt"
 )
 
