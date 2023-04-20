@@ -12,21 +12,19 @@ The following is the detailed lifecycle of etcd-wrapper. The workings of etcd-ba
 
 ### Bootstrapping phase
 
-This is the description of the steps and checks that have to be done in order for etcd-wrapper to properly start up.
+This is the description of the process to setup and start etcd properly. It is in the bootstrapping phase that `etcd-wrapper` interacts with its sidecar (`etcd-backup-restore`). 
 
 <img src="../images/etcd-wrapper-bootstrap-excalidraw.png">
-
-It is in the bootstrapping phase that `etcd-wrapper` interacts with its sidecar (`etcd-backup-restore`). 
 
 #### Setup: Initialisation Loop
 
 **Step #1**
 
-The loop starts with querying the `etcd-backup-restore` container if an initilisation has already been started. 
+The loop starts with querying the `etcd-backup-restore` container if an initialisation has already been started. 
 
-* If no initilisation has been started then the HTTPS response will contain `New` state indicating that `etcd-backup-restore` has not yet received a request for initialisation yet.
+* If no initialisation has been started then the HTTPS response will contain `New` state indicating that `etcd-backup-restore` has not yet received a request for initialisation yet.
 
-* If an initiliasation has already been triggered then the response will contain one of `Progress`  | `Success` | `Failed`
+* If an initialisation has already been triggered then the response will contain one of `Progress`  | `Success` | `Failed`
 
 **Step #2**
 
@@ -56,4 +54,4 @@ Start phase mainly comprises of two steps:
 
 ### Terminating phase
 
-`etcd-wrapper` can either terminate gracefully or un-gracefully (panics). In either of these cases an attempt is made to capture the exit code.  In case of a graceful termination application context is cancelled which gracefully terminates any go-routines and releases resources.
+`etcd-wrapper` can either terminate gracefully or un-gracefully (panics). In either of these cases an attempt is made to capture the exit code.  In case of a graceful termination application context is cancelled which gracefully terminates all go-routines and releases resources.
