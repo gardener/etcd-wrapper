@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gardener/etcd-wrapper/internal/types"
 	"github.com/gardener/etcd-wrapper/internal/util"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -34,8 +35,6 @@ const (
 	etcdGetTimeout        = 5 * time.Second
 	etcdQueryInterval     = 2 * time.Second
 	etcdEndpointAddress   = ":2379"
-	schemeHTTP            = "http"
-	schemeHTTPS           = "https"
 )
 
 var (
@@ -113,17 +112,16 @@ func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
 
 // createEtcdClient creates an ETCD client
 func (a *Application) createEtcdClient() (*clientv3.Client, error) {
-	scheme := schemeHTTP
-
 	// fetch tls configuration
 	tlsConf, err := a.getTLSConfig()
 	if err != nil {
 		return nil, err
 	}
 
+	scheme := types.SchemeHTTP
 	// use https protocol if tls is enabled
 	if a.isTLSEnabled() {
-		scheme = schemeHTTPS
+		scheme = types.SchemeHTTPS
 	}
 
 	// Create etcd client

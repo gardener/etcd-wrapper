@@ -103,8 +103,7 @@ func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 		}
 
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brc, err := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
-		g.Expect(err).To(BeNil())
+		brc := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
 		req, err := brc.GetEtcdConfig(context.TODO())
 		if entry.expectError {
 			g.Expect(err).ToNot(BeNil())
@@ -144,9 +143,8 @@ func testGetInitializationStatus(t *testing.T, etcdConfigFilePath string) {
 		}
 
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brclient, err := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
-		g.Expect(err).To(BeNil())
-		req, err := brclient.GetInitializationStatus(context.TODO())
+		brc := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
+		req, err := brc.GetInitializationStatus(context.TODO())
 		g.Expect(err != nil).To(Equal(entry.expectError))
 		g.Expect(req).To(Equal(entry.expectedStatus))
 	}
@@ -176,9 +174,8 @@ func testTriggerInitialization(t *testing.T, etcdConfigFilePath string) {
 		}
 
 		httpClient := getTestHttpClient(entry.responseCode, entry.responseBody)
-		brclient, err := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
-		g.Expect(err).To(BeNil())
-		err = brclient.TriggerInitialization(context.TODO(), FullValidation)
+		brc := NewClient(httpClient, sidecarBaseAddress, etcdConfigFilePath)
+		err := brc.TriggerInitialization(context.TODO(), FullValidation)
 		g.Expect(err != nil).To(Equal(entry.expectError))
 	}
 }
