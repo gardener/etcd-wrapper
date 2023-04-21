@@ -181,8 +181,7 @@ func TestTryGetEtcdConfig(t *testing.T) {
 				httpClient = getTestHttpClient(http.StatusOK, []byte(""))
 			}
 
-			brc, err := brclient.NewClient(httpClient, "", etcdConfigFilePath)
-			g.Expect(err).ToNot(HaveOccurred())
+			brc := brclient.NewClient(httpClient, "", etcdConfigFilePath)
 
 			loggerConfig := zap.NewDevelopmentConfig()
 			lgr, err := loggerConfig.Build()

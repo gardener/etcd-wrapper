@@ -82,15 +82,15 @@ func NewDefaultClient(sidecarConfig types.SidecarConfig, etcdConfigPath string) 
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(client, sidecarConfig.GetBaseAddress(), etcdConfigPath)
+	return NewClient(client, sidecarConfig.GetBaseAddress(), etcdConfigPath), nil
 }
 
 // NewClient creates and returns a new BackupRestoreClient object
-func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) (BackupRestoreClient, error) {
+func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) BackupRestoreClient {
 	return &brClient{
 		client:             httpClient,
 		sidecarBaseAddress: sidecarBaseAddress,
-		etcdConfigFilePath: etcdConfigFilePath}, nil
+		etcdConfigFilePath: etcdConfigFilePath}
 }
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {

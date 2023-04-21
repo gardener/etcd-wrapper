@@ -123,11 +123,11 @@ func testCreateEtcdClient(t *testing.T) {
 		expectError       bool
 		endpointScheme    string
 	}{
-		{"test: should return valid etcd client with HTTP scheme when no certificates are passed", "", "", "", false, schemeHTTP},
-		{"test: should return valid etcd client with HTTPS scheme when all certificates are passed", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, schemeHTTPS},
-		{"test: should return valid etcd client with HTTP scheme when empty certificate file path is passed", "", etcdKeyFilePath, etcdCACertFilePath, false, schemeHTTP},
-		{"test: should return valid etcd client with HTTP scheme when empty key file path is passed", etcdCertFilePath, "", etcdCACertFilePath, false, schemeHTTP},
-		{"test: should return valid etcd client with HTTP scheme when empty CA cert file path is passed", etcdCertFilePath, etcdKeyFilePath, "", false, schemeHTTP},
+		{"test: should return valid etcd client with HTTP scheme when no certificates are passed", "", "", "", false, types.SchemeHTTP},
+		{"test: should return valid etcd client with HTTPS scheme when all certificates are passed", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, types.SchemeHTTPS},
+		{"test: should return valid etcd client with HTTP scheme when empty certificate file path is passed", "", etcdKeyFilePath, etcdCACertFilePath, false, types.SchemeHTTP},
+		{"test: should return valid etcd client with HTTP scheme when empty key file path is passed", etcdCertFilePath, "", etcdCACertFilePath, false, types.SchemeHTTP},
+		{"test: should return valid etcd client with HTTP scheme when empty CA cert file path is passed", etcdCertFilePath, etcdKeyFilePath, "", false, types.SchemeHTTP},
 		{"test: should return error when wrong certificate file path is passed", filepath.Join(testdataPath, "does-not-exist.crt"), etcdKeyFilePath, etcdCACertFilePath, true, ""},
 	}
 
