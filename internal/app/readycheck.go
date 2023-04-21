@@ -36,9 +36,9 @@ const (
 	etcdEndpointAddress   = ":2379"
 )
 
-var (
-	etcdReady bool
-)
+//var (
+//	etcdReady bool
+//)
 
 // Create a struct which will hold the last status for etcd.
 // In SetupReadinessProbe first call go a.queryAndUpdateEtcdReadiness()/queryAndUpdateEtcdReadiness this function will
@@ -75,7 +75,7 @@ func (a *Application) queryAndUpdateEtcdReadiness() {
 
 	for {
 		// Query etcd readiness and update the status
-		etcdReady = a.isEtcdReady()
+		a.etcdReady = a.isEtcdReady()
 
 		select {
 		// Stop querying and return when the context is cancelled
@@ -102,7 +102,7 @@ func (a *Application) isEtcdReady() bool {
 
 // readinessHandler reads the etcd status from the etcdStatus struct and writes that onto the http responsewriter
 func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
-	if etcdReady {
+	if a.etcdReady {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
