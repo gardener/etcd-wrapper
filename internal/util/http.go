@@ -14,7 +14,10 @@
 
 package util
 
-import "net/http"
+import (
+	"fmt"
+	"net/http"
+)
 
 var (
 	okResponseCodes = []int{http.StatusAccepted, http.StatusOK, http.StatusCreated}
@@ -39,4 +42,20 @@ func CloseResponseBody(response *http.Response) {
 	if response != nil {
 		_ = response.Body.Close()
 	}
+}
+
+const (
+	// SchemeHTTP indicates a constant for the http scheme
+	schemeHTTP = "http"
+	// SchemeHTTPS indicates a constant for the https scheme
+	schemeHTTPS = "https"
+)
+
+// ConstructBaseAddress creates a base address selecting a scheme based on tlsEnabled and using hostPort.
+func ConstructBaseAddress(tlsEnabled bool, hostPort string) string {
+	scheme := schemeHTTP
+	if tlsEnabled {
+		scheme = schemeHTTPS
+	}
+	return fmt.Sprintf("%s://%s", scheme, hostPort)
 }
