@@ -3,6 +3,7 @@
 <img src="logo/etcd-wrapper-logo.png" style="width:300px">
 
 [![CI Build status](https://concourse.ci.gardener.cloud/api/v1/teams/gardener/pipelines/etcd-wrapper-main/jobs/main-head-update-job/badge)](https://concourse.ci.gardener.cloud/api/v1/teams/gardener/pipelines/etcd-wrapper-main/jobs/main-head-update-job)
+[![Go Report Card](https://goreportcard.com/badge/github.com/gardener/etcd-wrapper)](https://goreportcard.com/report/github.com/gardener/etcd-wrapper)
 
 `etcd-wrapper` configures and starts an embedded etcd.
 
