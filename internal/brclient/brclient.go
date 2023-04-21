@@ -94,26 +94,9 @@ func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFil
 }
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
-	// create a child cancellable ctx for the http GET call.
-	httpCtx, cancelFn := context.WithCancel(ctx)
-	defer cancelFn()
-
-	// create request with ctx
-	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status", nil)
-	if err != nil {
-		return Unknown, fmt.Errorf("(GetInitializationStatus):  error creating http request: %v", err)
-	}
-
-	// send http request
-	response, err := c.client.Do(req)
+	response, err := c.httpRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status")
 	if err != nil {
 		return Unknown, err
-	}
-
-	defer util.CloseResponseBody(response)
-
-	if !util.ResponseHasOKCode(response) {
-		return Unknown, fmt.Errorf("(GetInitializationStatus): server retured error response code: %v", response)
 	}
 
 	bodyBytes, err := io.ReadAll(response.Body)
@@ -135,51 +118,15 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 func (c *brClient) TriggerInitialization(ctx context.Context, validationType ValidationType) error {
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
 
-	// create a child cancellable ctx for GET request.
-	httpCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// create request with ctx
-	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+fmt.Sprintf("/initialization/start?mode=%s", validationType), nil)
-	if err != nil {
-		return fmt.Errorf("(TriggerInitialization): error creating http request: %v", err)
-	}
-
-	// send http request
-	response, err := c.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	defer util.CloseResponseBody(response)
-
-	if !util.ResponseHasOKCode(response) {
-		return fmt.Errorf("(TriggerInitialization): server returned error response code: %v", response)
-	}
-	return nil
+	url := c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
+	_, err := c.httpRequest(ctx, http.MethodGet, url)
+	return err
 }
 
 func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
-	// create a child ctx for
-	httpCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// create request with ctx
-	req, err := http.NewRequestWithContext(httpCtx, http.MethodGet, c.sidecarBaseAddress+"/config", nil)
-	if err != nil {
-		return "", fmt.Errorf("(GetEtcdConfig): error creating http request: %v", err)
-	}
-
-	// send http request
-	response, err := c.client.Do(req)
+	response, err := c.httpRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/config")
 	if err != nil {
 		return "", err
-	}
-
-	defer util.CloseResponseBody(response)
-
-	if !util.ResponseHasOKCode(response) {
-		return "", fmt.Errorf("(GetEtcdConfig): server returned error response code: %v", response)
 	}
 
 	etcdConfigBytes, err := io.ReadAll(response.Body)
@@ -190,6 +137,32 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return c.etcdConfigFilePath, nil
+}
+
+func (c *brClient) httpRequest(ctx context.Context, method, url string) (*http.Response, error) {
+	// create cancellable child context for http request
+	httpCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// create new request
+	req, err := http.NewRequestWithContext(httpCtx, method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// send http request
+	response, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer util.CloseResponseBody(response)
+
+	if !util.ResponseHasOKCode(response) {
+		return nil, fmt.Errorf("server returned error response code: %v", response)
+	}
+
+	return response, nil
 }
 
 func createSidecarClient(sidecarConfig types.SidecarConfig) (*http.Client, error) {
