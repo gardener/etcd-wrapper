@@ -76,10 +76,10 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 		i.logger.Info("Fetched initialization status", zap.String("Status", initStatus.String()))
 		if initStatus == brclient.New {
 			validationMode := determineValidationMode(types.DefaultExitCodeFilePath, i.logger)
+			i.logger.Info("Fetched initialization status is `New`. Triggering etcd initialization with validation mode", zap.Any("mode", validationMode))
 			if err = i.brClient.TriggerInitialization(ctx, validationMode); err != nil {
 				i.logger.Error("error while triggering initialization to backup-restore", zap.Error(err))
 			}
-			i.logger.Info("Fetched initialization status is `New`. Triggering etcd initialization with validation mode", zap.Any("mode", validationMode))
 		}
 		select {
 		case <-ctx.Done():

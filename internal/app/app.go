@@ -36,6 +36,7 @@ type Application struct {
 	etcd             *embed.Etcd
 	waitReadyTimeout time.Duration
 	logger           *zap.Logger
+	etcdReady        bool
 }
 
 // NewApplication initializes and returns an application struct
