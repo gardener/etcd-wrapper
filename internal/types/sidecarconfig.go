@@ -18,6 +18,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/gardener/etcd-wrapper/internal/util"
 )
 
 const (
@@ -56,9 +58,5 @@ func (c *SidecarConfig) Validate() (err error) {
 
 // GetBaseAddress returns the complete address of the backup restore sidecar
 func (c *SidecarConfig) GetBaseAddress() string {
-	scheme := SchemeHTTP
-	if c.TLSEnabled {
-		scheme = SchemeHTTPS
-	}
-	return fmt.Sprintf("%s://%s", scheme, c.HostPort)
+	return util.ConstructBaseAddress(c.TLSEnabled, c.HostPort)
 }
