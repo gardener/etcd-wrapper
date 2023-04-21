@@ -27,3 +27,23 @@ func TestResponseHasOKCode(t *testing.T) {
 		g.Expect(okCode).To(Equal(entry.expectValue))
 	}
 }
+
+func TestConstructBaseAddress(t *testing.T) {
+	table := []struct {
+		description         string
+		tlsEnabled          bool
+		hostPort            string
+		expectedBaseAddress string
+	}{
+		{"test: tls is enabled", true, "localhost:8080", "https://localhost:8080"},
+		{"test: tls is disabled", false, ":2379", "http://:2379"},
+	}
+
+	for _, entry := range table {
+		t.Log(entry.description)
+		g := NewWithT(t)
+
+		baseAddress := ConstructBaseAddress(entry.tlsEnabled, entry.hostPort)
+		g.Expect(baseAddress).To(Equal(entry.expectedBaseAddress))
+	}
+}

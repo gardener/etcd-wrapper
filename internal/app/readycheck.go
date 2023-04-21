@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gardener/etcd-wrapper/internal/types"
 	"github.com/gardener/etcd-wrapper/internal/util"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -118,16 +117,10 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 		return nil, err
 	}
 
-	scheme := types.SchemeHTTP
-	// use https protocol if tls is enabled
-	if a.isTLSEnabled() {
-		scheme = types.SchemeHTTPS
-	}
-
 	// Create etcd client
 	cli, err := clientv3.New(clientv3.Config{
 		Context:     a.ctx,
-		Endpoints:   []string{fmt.Sprintf("%s://%s", scheme, etcdEndpointAddress)},
+		Endpoints:   []string{util.ConstructBaseAddress(a.isTLSEnabled(), etcdEndpointAddress)},
 		DialTimeout: etcdConnectionTimeout,
 		Logger:      a.logger,
 		TLS:         tlsConf,
