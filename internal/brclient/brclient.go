@@ -94,9 +94,13 @@ func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFil
 }
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
-	response, err := c.httpRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status")
+	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status")
 	if err != nil {
 		return Unknown, err
+	}
+
+	if !util.ResponseHasOKCode(response) {
+		return Unknown, fmt.Errorf("server returned error response code when attempting to get initialization status: %v", response)
 	}
 
 	bodyBytes, err := io.ReadAll(response.Body)
@@ -119,14 +123,26 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
 
 	url := c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
-	_, err := c.httpRequest(ctx, http.MethodGet, url)
-	return err
+	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, url)
+	if err != nil {
+		return err
+	}
+
+	if !util.ResponseHasOKCode(response) {
+		return fmt.Errorf("server returned error response code when attempting to trigger initialization: %v", response)
+	}
+
+	return nil
 }
 
 func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
-	response, err := c.httpRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/config")
+	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/config")
 	if err != nil {
 		return "", err
+	}
+
+	if !util.ResponseHasOKCode(response) {
+		return "", fmt.Errorf("server returned error response code when attempting to fetch etcd config: %v", response)
 	}
 
 	etcdConfigBytes, err := io.ReadAll(response.Body)
@@ -139,7 +155,7 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	return c.etcdConfigFilePath, nil
 }
 
-func (c *brClient) httpRequest(ctx context.Context, method, url string) (*http.Response, error) {
+func (c *brClient) createAndExecuteHTTPRequest(ctx context.Context, method, url string) (*http.Response, error) {
 	// create cancellable child context for http request
 	httpCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -157,10 +173,6 @@ func (c *brClient) httpRequest(ctx context.Context, method, url string) (*http.R
 	}
 
 	defer util.CloseResponseBody(response)
-
-	if !util.ResponseHasOKCode(response) {
-		return nil, fmt.Errorf("server returned error response code: %v", response)
-	}
 
 	return response, nil
 }
