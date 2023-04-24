@@ -101,7 +101,7 @@ func testReadinessHandler(t *testing.T) {
 
 		ctx, cancel := context.WithCancel(context.Background())
 		app := createApplicationInstance(ctx, cancel, g)
-		app.etcdReady = entry.readyStatus
+		etcdReady = entry.readyStatus
 
 		request, err := http.NewRequest("GET", "/readyz", nil)
 		g.Expect(err).To(BeNil())
