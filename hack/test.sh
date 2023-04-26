@@ -32,7 +32,7 @@ echo "> Generating PKI material for tests..."
 generatePKI "${TEST_PKI_DIR}"
 
 echo "> Running tests..."
-go test -v ./... -coverprofile cover.out
+go test -v ./... #-coverprofile cover.out
 
 echo "> Removing PKI material..."
 cleanupPKI "${TEST_PKI_DIR}"
