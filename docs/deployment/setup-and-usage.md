@@ -108,13 +108,7 @@ _Manually create K8S resources_
    kubectl apply -f example/common/etcd-sa.yaml
    ```
 
-4. Create Secrets
-   
-   ```yaml
-   kubectl apply -f example/common/etcd-secrets.yaml
-   ```
-
-5. Create Leases
+4. Create Leases
    
    > A lease is created for each etcd member. etcd-backup-restore periodically renews its lease. An operator can use the lease to check for active/live members.
    
@@ -122,7 +116,7 @@ _Manually create K8S resources_
    kubectl apply -f example/singlenode/leases.yaml
    ```
 
-6. Create etcd ConfigMap
+5. Create etcd ConfigMap
    
    > All configuration required by the etcd process to start is stored in this configmap
    
@@ -130,7 +124,7 @@ _Manually create K8S resources_
    kubectl apply -f example/singlenode/etcd-cm.yaml
    ```
 
-7. Create StatefulSet
+6. Create StatefulSet
    
    ```yaml
    kubectl apply -f example/singleode/etcd-sts.yaml
@@ -166,12 +160,6 @@ __Manually create K8S resources_
   
   ```bash
   kubectl apply -f example/common/etcd-sa.yaml
-  ```
-
-- Create Secrets
-  
-  ```bash
-  kubectl apply -f example/common/etcd-secrets.yaml
   ```
 
 - Create Leases
@@ -211,8 +199,6 @@ __Manually create K8S resources_
 > If you change the single-node cluster to a multi-node then ensure that you manually delete all the `PersistentVolumeClaims` that gets created before you migrate.
 
 ### Cleanup
-
-> 
 
 When you are done, you can clean up the entire setup by deleting the kind cluster
 
