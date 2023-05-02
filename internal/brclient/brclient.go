@@ -95,6 +95,7 @@ func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFil
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status")
+	defer util.CloseResponseBody(response)
 	if err != nil {
 		return Unknown, err
 	}
@@ -121,9 +122,10 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 
 func (c *brClient) TriggerInitialization(ctx context.Context, validationType ValidationType) error {
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
-
 	url := c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, url)
+	defer util.CloseResponseBody(response)
+
 	if err != nil {
 		return err
 	}
@@ -137,6 +139,7 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 
 func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/config")
+	defer util.CloseResponseBody(response)
 	if err != nil {
 		return "", err
 	}
@@ -171,8 +174,6 @@ func (c *brClient) createAndExecuteHTTPRequest(ctx context.Context, method, url 
 	if err != nil {
 		return nil, err
 	}
-
-	defer util.CloseResponseBody(response)
 
 	return response, nil
 }

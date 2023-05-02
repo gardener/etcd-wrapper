@@ -9,7 +9,7 @@
 | sidecar-ca-cert-bundle-path | string        | No       | ""            | Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.                                                                                                         |
 | etcd-wait-ready-timeout     | time.duration | No       | 0s            | time duration the application will wait for etcd to get ready, by default it waits forever.                                                                                                 |
 
-## Running etcd-wrapper in a local kind cluster
+## Deploying etcd-wrapper in a local kind cluster
 
 etcd-wrapper can be run as a container on a cluster. It has a dependency and is designed to run in tandem with [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) as a sidecar container within a single pod.
 
@@ -54,50 +54,171 @@ You now have a kind cluster ready and can proceed to building an image and deplo
 
 3. Push the image
    
+   > Optional: If you are using any dedicated [kind – Local Registry](https://kind.sigs.k8s.io/docs/user/local-registry/) or any remote docker registry then you should push the image to that repository and also change the StatefulSet to use these image(s).
+   
    ```
      docker push <registry_name>/<repo_name>:<version>
    ```
 
-### Run application
+### Deploy application
 
-1. Apply etcd-backup prerequisite resources
-   
-   > etcd-backup-restore needs member lease to push regular heartbeats and also requires to access other k8s resources for which role and rolebinding is created.
+There are two variants in which the etcd cluster can be setup:
+
+* `single-node` - in this variant a single member etcd cluster is setup.
+
+* `multi-node` - in this variant by default a 3 member etcd cluster is setup.
+
+There are two ways to deploy all the K8S resource required for `etcd-wrapper` to run
+
+* [Skaffold](https://skaffold.dev/) can be used to easily setup all required resources.
+  
+  > It is assumed that you have already installed skaffold. If not already done so then please follow the [installation instructions](https://skaffold.dev/docs/install/).
+
+* Manually setup each resource using `kubectl`.
+
+
+
+#### Deploy a single-node etcd cluster:
+
+_Setup using skaffold_
+
+```bash
+skaffold run --module single-node-etcd
+```
+
+_Manually create K8S resources_
+
+1. Create role and rolebinding required by etcd-backup-restore container.
    
    ```bash
-     kubectl apply -f example/etcd-backup-restore-prereq.yaml
+   kubectl apply -f example/common/backuprestore-role-rolebinding.yaml
    ```
 
-2. Apply client service
+2. Create client service. 
    
-   > The client service is used as an endpoint by any client to send requests to etcd
+   > This will be required by clients like kube-api-server to connect to the etcd service.
    
    ```bash
-     kubectl apply -f example/client-svc.yaml
+   kubectl apply -f example/common/etcd-client-svc.yaml
    ```
 
-3. Apply etcd configuration
-   
-   > all configuration required by the etcd process to start is stored in this configmap
+3. Create a ServiceAccount
    
    ```bash
-     kubectl apply -f example/etcd-configmap.yaml
+   kubectl apply -f example/common/etcd-sa.yaml
    ```
 
-4. Apply etcd statefulset
+4. Create Secrets
    
-   ```bash
-     kubectl apply -f example/etcd-sts.yaml 
+   ```yaml
+   kubectl apply -f example/common/etcd-secrets.yaml
    ```
+
+5. Create Leases
+   
+   > A lease is created for each etcd member. etcd-backup-restore periodically renews its lease. An operator can use the lease to check for active/live members.
+   
+   ```yaml
+   kubectl apply -f example/singlenode/leases.yaml
+   ```
+
+6. Create etcd ConfigMap
+   
+   > All configuration required by the etcd process to start is stored in this configmap
+   
+   ```yaml
+   kubectl apply -f example/singlenode/etcd-cm.yaml
+   ```
+
+7. Create StatefulSet
+   
+   ```yaml
+   kubectl apply -f example/singleode/etcd-sts.yaml
+   ```
+
+
+
+#### Deploy a multi-node etcd cluster:
+
+*Setup using skaffold*
+
+```bash
+skaffold run --module multi-node-etcd
+```
+
+__Manually create K8S resources_
+
+- Create role and rolebinding required by etcd-backup-restore container.
+  
+  ```bash
+  kubectl apply -f example/common/backuprestore-role-rolebinding.yaml
+  ```
+
+- Create client service.
+  
+  > This will be required by clients like kube-api-server to connect to the etcd service.
+  
+  ```bash
+  kubectl apply -f example/common/etcd-client-svc.yaml
+  ```
+
+- Create a ServiceAccount
+  
+  ```bash
+  kubectl apply -f example/common/etcd-sa.yaml
+  ```
+
+- Create Secrets
+  
+  ```bash
+  kubectl apply -f example/common/etcd-secrets.yaml
+  ```
+
+- Create Leases
+  
+  ```yaml
+  kubectl apply -f example/multinode/leases.yaml
+  ```
+
+- Create ConfigMap
+  
+  ```bash
+  kubectl apply -f example/multinode/etcd-configmap.yaml
+  ```
+
+- Create Peer Service
+  
+  > Peer service is a headless service which will used for inter pod communication between all etcd members in a StatefulSet.
+  
+  ```bash
+  kubectl apply -f example/multinode/etcd-peer-svc.yaml
+  ```
+
+- Create Peer NetworkPolicy
+  
+  > Allows communication between peer pods
+  
+  ```bash
+  kubectl apply -f example/multinode/etcd-peer-netpol.yaml
+  ```
+
+- Create StatefulSet
+  
+  ```bash
+  kubectl apply -f example/multinode/etcd-sts.yaml
+  ```
+
+> If you change the single-node cluster to a multi-node then ensure that you manually delete all the `PersistentVolumeClaims` that gets created before you migrate.
 
 ### Cleanup
+
+> 
 
 When you are done, you can clean up the entire setup by deleting the kind cluster
 
 ```bash
 kind delete cluster
 ```
-
 
 ## Setup TLS in etcd-wrapper
 
@@ -110,13 +231,13 @@ To use etcd-wrapper with TLS, follow the following steps
 #### Setup secrets
 
 1. Use the script in `hack/pki_gen.sh` can be used to generate test secrets
-
+   
    The same secrets can be used for etcd as well as backup-restore. However, you can also go ahead and generate a different set of secrets for etcd-backup-restore if you desire.
-
+   
    > If you prefer manually creating secrets for testing, please see [here](https://github.com/gardener/etcd-backup-restore/blob/master/doc/usage/generating_ssl_certificates.md)
 
 2. Generate `base64` strings from the certificates you generated above
-
+   
    ```bash
    base64 -i <filepath of certificate file>
    ```
@@ -124,6 +245,7 @@ To use etcd-wrapper with TLS, follow the following steps
 3. Add the generated `base64` strings into the secret objects in `example/etcd-secrets.yaml`
 
 4. Apply the secrets to your kubernetes cluster
+   
    ```bash
    kubectl apply -f example/etcd-secrets.yaml
    ```
@@ -133,7 +255,7 @@ To use etcd-wrapper with TLS, follow the following steps
 1. Uncomment `client-transport-security` from `etcd-configmap.yaml` to have a configmap that contains secrets for etcd
 
 2. Apply the config map for etcd
-
+   
    ```bash
    kubectl apply -f example/etcd-configmap.yaml 
    ```
@@ -143,8 +265,7 @@ To use etcd-wrapper with TLS, follow the following steps
 1. Uncomment the extra TLS flags and volume mounts that are part of `example/etcd-sts.yaml`
 
 2. Apply the etcd statefulset
-
+   
    ```bash
    kubectl apply -f example/etcd-sts.yaml
    ```
-
