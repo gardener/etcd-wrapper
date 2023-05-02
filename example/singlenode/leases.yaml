@@ -1,0 +1,9 @@
+# each etcd member has its own lease which serves as a heartbeat for it. An operator can check if the lease is renewed and active to determine that a member is alive.
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  labels:
+    instance: etcd-test
+    name: etcd
+  name: etcd-test-0
+  namespace: default

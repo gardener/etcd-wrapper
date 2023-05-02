@@ -7,7 +7,7 @@ metadata:
   name: etcd-test
   namespace: default
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       instance: etcd-test
@@ -37,7 +37,7 @@ spec:
               protocol: TCP
           volumeMounts:
             - mountPath: /var/etcd/data/
-              name: etcd-main
+              name: etcd-test
 #            # to be used only when TLS is desired
 #            - mountPath: /var/etcd/ssl/client/ca
 #              name: etcd-client-ca
@@ -111,7 +111,6 @@ spec:
         - hostnames:
             - etcd-test-local
           ip: 127.0.0.1
-      serviceAccount: etcd-test
       serviceAccountName: etcd-test
       volumes:
         - configMap:
