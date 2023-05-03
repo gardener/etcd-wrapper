@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -e
+set -xe
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -30,6 +30,8 @@ echo "> Test..."
 
 echo "> Generating PKI material for tests..."
 generatePKI "${TEST_PKI_DIR}"
+
+go env
 
 echo "> Running tests..."
 go test -v ./... #-coverprofile cover.out
