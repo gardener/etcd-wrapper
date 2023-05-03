@@ -16,7 +16,7 @@
 # The `go <cmd>` commands requires to see the target repository to be part of a
 # Go workspace. Thus, if we are not yet in a Go workspace, let's create one
 # temporarily by using symbolic links.
-set -eo pipefail
+set -xeo pipefail
 
 if [[ -z "$SOURCE_PATH" ]]; then
     echo "Environment variable SOURCE_PATH must be provided"
