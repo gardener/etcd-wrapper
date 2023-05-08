@@ -45,7 +45,7 @@ func TestCleanupExitCodeFile(t *testing.T) {
 		testFn      func(*testing.T, string)
 	}{
 		{"cleanup exit code file when file exists", testCleanupExitCodeWhenFileExists},
-		{"cleanup exit code file when it does not exist", testCleanupExitCodeWhenFileDoesNotExists},
+		{"cleanup exit code file when it does not exist", testCleanupExitCodeWhenFileDoesNotExist},
 	}
 
 	for _, entry := range table {
