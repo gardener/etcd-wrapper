@@ -17,8 +17,8 @@ var (
 )
 
 const (
-	AttemptSuccessful = "attempt-successful"
-	AttemptFailed     = "attempt-failed"
+	attemptSuccessful = "attempt-successful"
+	attemptFailed     = "attempt-failed"
 )
 
 func TestErrorIfExceedsAttempts(t *testing.T) {
@@ -43,7 +43,7 @@ func TestErrorIfExceedsAttempts(t *testing.T) {
 		t.Run(entry.description, func(t *testing.T) {
 			defer clearRetryResults()
 			result := Retry(context.Background(), logger, operation, neverSucceeds, numAttempts, backOff, entry.canRetryFn)
-			g.Expect(result.Value).To(Equal(AttemptFailed))
+			g.Expect(result.Value).To(Equal(attemptFailed))
 			g.Expect(result.Err).To(Equal(errAttemptFailed))
 			g.Expect(len(retryResults)).To(Equal(entry.expectedRetryResultLen))
 		})
@@ -64,18 +64,18 @@ func TestSuccessWhenEventuallySucceeds(t *testing.T) {
 	retryFn := func() (string, error) {
 		retryCount++
 		if retryCount == succeedAtAttempt {
-			retryResults = append(retryResults, AttemptSuccessful)
-			return AttemptSuccessful, nil
+			retryResults = append(retryResults, attemptSuccessful)
+			return attemptSuccessful, nil
 		}
-		retryResults = append(retryResults, AttemptFailed)
-		return AttemptFailed, errAttemptFailed
+		retryResults = append(retryResults, attemptFailed)
+		return attemptFailed, errAttemptFailed
 	}
 
 	result := Retry(context.Background(), logger, operation, retryFn, numAttempts, backOff, alwaysRetry)
-	g.Expect(result.Value).To(Equal(AttemptSuccessful))
+	g.Expect(result.Value).To(Equal(attemptSuccessful))
 	g.Expect(result.Err).To(BeNil())
 	g.Expect(len(retryResults)).To(Equal(succeedAtAttempt))
-	g.Expect(retryResults).Should(ConsistOf(AttemptFailed, AttemptFailed, AttemptSuccessful))
+	g.Expect(retryResults).Should(ConsistOf(attemptFailed, attemptFailed, attemptSuccessful))
 }
 
 func TestRetryWhenContextCancelled(t *testing.T) {
@@ -95,9 +95,9 @@ func TestRetryWhenContextCancelled(t *testing.T) {
 		if retryCount == contextCancelledAtAttempt {
 			cancelFn()
 		} else {
-			retryResults = append(retryResults, AttemptFailed)
+			retryResults = append(retryResults, attemptFailed)
 		}
-		return AttemptFailed, errAttemptFailed
+		return attemptFailed, errAttemptFailed
 	}
 
 	result := Retry(ctx, logger, operation, retryFn, numAttempts, backOff, alwaysRetry)
@@ -107,8 +107,8 @@ func TestRetryWhenContextCancelled(t *testing.T) {
 }
 
 func neverSucceeds() (string, error) {
-	retryResults = append(retryResults, AttemptFailed)
-	return AttemptFailed, errAttemptFailed
+	retryResults = append(retryResults, attemptFailed)
+	return attemptFailed, errAttemptFailed
 }
 
 func clearRetryResults() {
