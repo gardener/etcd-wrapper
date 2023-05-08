@@ -36,11 +36,6 @@ const (
 	etcdEndpointAddress   = ":2379"
 )
 
-// Create a struct which will hold the last status for etcd.
-// In SetupReadinessProbe first call go a.queryAndUpdateEtcdReadiness()/queryAndUpdateEtcdReadiness this function will
-// periodically query etcd and updates the readiness struct. The handler just reads from the struct.
-// If the struct has no status it assumes NotAvailable else it returns the current status.
-
 // SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
 // the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
 func (a *Application) SetupReadinessProbe() {

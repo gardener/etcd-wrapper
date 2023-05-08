@@ -66,8 +66,8 @@ Please ensure that you have read [testing guidelines](testing.md).
 
 Before raising a pull request ensure that if you are introducing any new file then you must add licesence header to all new files. To add license header you can run this make target:
 ```bash
-> make add-license-headers YEAR=<current_year>
-# This will add license headers to any file which does not already have it. Eg: make add-license-headers YEAR=2023
+> make add-license-headers
+# This will add license headers to any file which does not already have it.
 ```
 > NOTE: Also have a look at the Makefile as it has other targets that are not mentioned here.
 
