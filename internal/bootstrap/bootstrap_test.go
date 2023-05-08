@@ -73,7 +73,7 @@ func testCleanupExitCodeWhenFileExists(t *testing.T, exitCodeFilePath string) {
 	g.Expect(err).ToNot(BeNil())
 }
 
-func testCleanupExitCodeWhenFileDoesNotExists(t *testing.T, exitCodeFilePath string) {
+func testCleanupExitCodeWhenFileDoesNotExist(t *testing.T, exitCodeFilePath string) {
 	g := NewWithT(t)
 	// check is exit_code file exists
 	// remove it if it does

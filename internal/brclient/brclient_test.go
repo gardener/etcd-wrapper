@@ -34,7 +34,7 @@ var (
 	etcdCACertFilePath = filepath.Join(testdataPath, "ca.pem")
 )
 
-func TestSuit(t *testing.T) {
+func TestSuite(t *testing.T) {
 	allTests := []struct {
 		name   string
 		testFn func(t *testing.T, etcdConfigFilePath string)
