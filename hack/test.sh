@@ -34,7 +34,7 @@ generatePKI "${TEST_PKI_DIR}"
 go env
 
 echo "> Running tests..."
-go test -v ./... #-coverprofile cover.out
+go test -v "$@"
 
 echo "> Removing PKI material..."
 cleanupPKI "${TEST_PKI_DIR}"
