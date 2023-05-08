@@ -95,10 +95,10 @@ func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFil
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status")
-	defer util.CloseResponseBody(response)
 	if err != nil {
 		return Unknown, err
 	}
+	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
 		return Unknown, fmt.Errorf("server returned error response code when attempting to get initialization status: %v", response)
@@ -124,11 +124,10 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
 	url := c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, url)
-	defer util.CloseResponseBody(response)
-
 	if err != nil {
 		return err
 	}
+	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
 		return fmt.Errorf("server returned error response code when attempting to trigger initialization: %v", response)
@@ -139,10 +138,10 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 
 func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/config")
-	defer util.CloseResponseBody(response)
 	if err != nil {
 		return "", err
 	}
+	defer util.CloseResponseBody(response)
 
 	if !util.ResponseHasOKCode(response) {
 		return "", fmt.Errorf("server returned error response code when attempting to fetch etcd config: %v", response)
