@@ -73,10 +73,10 @@ There are two ways to deploy all the K8S resource required for `etcd-wrapper` to
 * [Skaffold](https://skaffold.dev/) can be used to easily setup all required resources.
   
   > It is assumed that you have already installed skaffold. If not already done so then please follow the [installation instructions](https://skaffold.dev/docs/install/).
+  
+  For faster builds we leverage [KO](https://github.com/ko-build/ko).
 
 * Manually setup each resource using `kubectl`.
-
-
 
 #### Deploy a single-node etcd cluster:
 
@@ -130,8 +130,6 @@ _Manually create K8S resources_
    kubectl apply -f example/singleode/etcd-sts.yaml
    ```
 
-
-
 #### Deploy a multi-node etcd cluster:
 
 *Setup using skaffold*
@@ -171,7 +169,7 @@ __Manually create K8S resources_
 - Create ConfigMap
   
   ```bash
-  kubectl apply -f example/multinode/etcd-configmap.yaml
+  kubectl apply -f example/multinode/etcd-cm.yaml
   ```
 
 - Create Peer Service
@@ -205,6 +203,17 @@ When you are done, you can clean up the entire setup by deleting the kind cluste
 ```bash
 kind delete cluster
 ```
+
+If you only wish to delete all the resources created as part of `skaffold run` then you can do the following:
+
+1. Remove all the resources created using skaffold
+   
+   ```bash
+   # the module name can either be `single-node-etcd` or `multi-node-etcd`
+   skaffold delete --module <module-name>
+   ```
+
+2. Manually remove the PVC as that does not get removed using `skaffold delete`.
 
 ## Setup TLS in etcd-wrapper
 
@@ -243,7 +252,7 @@ To use etcd-wrapper with TLS, follow the following steps
 2. Apply the config map for etcd
    
    ```bash
-   kubectl apply -f example/etcd-configmap.yaml 
+   kubectl apply -f example/etcd-cm.yaml 
    ```
 
 #### Add TLS to the application

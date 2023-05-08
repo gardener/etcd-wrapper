@@ -6,8 +6,16 @@ build:
   local: {}
   artifacts:
     - image: etcd-wrapper-image
-      docker:
-        dockerfile: Dockerfile
+      ko:
+        dependencies:
+          paths:
+            - cmd
+            - internal
+            - go.mod
+            - vendor
+        flags:
+          - -mod=vendor
+          - -v
 manifests:
   rawYaml:
     - example/common/backuprestore-role-rolebinding.yaml
@@ -27,8 +35,16 @@ build:
   local: {}
   artifacts:
     - image: etcd-wrapper-image
-      docker:
-        dockerfile: Dockerfile
+      ko:
+        dependencies:
+          paths:
+            - cmd
+            - internal
+            - go.mod
+            - vendor
+        flags:
+          - -mod=vendor
+          - -v
 manifests:
   rawYaml:
     - example/common/backuprestore-role-rolebinding.yaml

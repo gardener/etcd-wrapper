@@ -20,8 +20,7 @@ spec:
         name: etcd
     spec:
       containers:
-        - command:
-            - /etcd-wrapper
+        - args:
             - start-etcd
             - --tls-enabled=false
 #            - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
