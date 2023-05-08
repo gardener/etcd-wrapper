@@ -22,7 +22,7 @@ manifests:
     - example/common/etcd-client-svc.yaml
     - example/common/etcd-sa.yaml
     - example/singlenode/etcd-cm.yaml
-    - example/singlenode/leases.yaml
+    - example/singlenode/lease.yaml
     - example/singlenode/etcd-sts.yaml
 
 ---

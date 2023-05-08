@@ -2,20 +2,17 @@
 # Tools                                 #
 #########################################
 
-#TOOLS_DIR := hack/tools
-
-REPO_ROOT           := $(shell dirname "$(realpath $(lastword $(MAKEFILE_LIST)))")
 BIN_DIR := bin
 
-include $(REPO_ROOT)/hack/tools.mk
+include hack/tools.mk
 
 .PHONY: add-license-headers
 add-license-headers: $(GO_ADD_LICENSE)
-	@"$(REPO_ROOT)/hack/add_license_headers.sh"
+	@./hack/add_license_headers.sh
 
 .PHONY: build
 build:
-	@"$(REPO_ROOT)/hack/build.sh"
+	@./hack/build.sh
 
 .PHONY: clean
 clean:
@@ -24,7 +21,7 @@ clean:
 #-count=1 needed so that test results are not cached
 .PHONY: test
 test: $(CFSSL)
-	@"$(REPO_ROOT)/hack/test.sh" ./cmd/... ./internal/...
+	@./hack/test.sh ./cmd/... ./internal/...
 
 .PHONY: revendor
 revendor:
@@ -33,4 +30,4 @@ revendor:
 
 .PHONY: check
 check: $(GOLANGCI_LINT)
-	@"$(REPO_ROOT)/hack/check.sh" --golangci-lint-config=./.golangci.yaml ./internal/...
+	@./hack/check.sh --golangci-lint-config=./.golangci.yaml ./internal/...

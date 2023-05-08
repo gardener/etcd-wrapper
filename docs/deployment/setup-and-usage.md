@@ -113,7 +113,7 @@ _Manually create K8S resources_
    > A lease is created for each etcd member. etcd-backup-restore periodically renews its lease. An operator can use the lease to check for active/live members.
    
    ```yaml
-   kubectl apply -f example/singlenode/leases.yaml
+   kubectl apply -f example/singlenode/lease.yaml
    ```
 
 5. Create etcd ConfigMap
