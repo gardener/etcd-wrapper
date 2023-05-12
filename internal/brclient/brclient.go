@@ -121,7 +121,7 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 }
 
 func (c *brClient) TriggerInitialization(ctx context.Context, validationType ValidationType) error {
-	// TODO: triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
+	// TODO (@aaronfern): triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
 	url := c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, url)
 	if err != nil {
