@@ -35,8 +35,8 @@ var (
 and starts an embedded etcd.
 
 Flags:
-	--tls-enabled
-		Enables TLS for the application (enabled by default)
+	--backup-restore-tls
+		Enables TLS for communicating with backup-restore sidecar (disabled by default)
 	--sidecar-host-port string
 		Host address and port of the backup restore sidecar with which this container will interact during initialization. Should be of the format <host>:<port> and must not include the protocol.
 	--sidecar-ca-cert-bundle-path string
