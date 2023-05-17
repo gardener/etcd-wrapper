@@ -64,13 +64,11 @@ func TestSuccessWhenEventuallySucceeds(t *testing.T) {
 	retryFn := func() (string, error) {
 		retryCount++
 		if retryCount == succeedAtAttempt {
-			//retryResults = append(retryResults, attemptSuccessful)
-			//return attemptSuccessful, nil
-			return alwaysSucceeds()
+			retryResults = append(retryResults, attemptSuccessful)
+			return attemptSuccessful, nil
 		}
-		//retryResults = append(retryResults, attemptFailed)
-		//return attemptFailed, errAttemptFailed
-		return neverSucceeds()
+		retryResults = append(retryResults, attemptFailed)
+		return attemptFailed, errAttemptFailed
 	}
 
 	result := Retry(context.Background(), logger, operation, retryFn, numAttempts, backOff, alwaysRetry)
@@ -111,11 +109,6 @@ func TestRetryWhenContextCancelled(t *testing.T) {
 func neverSucceeds() (string, error) {
 	retryResults = append(retryResults, attemptFailed)
 	return attemptFailed, errAttemptFailed
-}
-
-func alwaysSucceeds() (string, error) {
-	retryResults = append(retryResults, attemptSuccessful)
-	return attemptSuccessful, nil
 }
 
 func clearRetryResults() {
