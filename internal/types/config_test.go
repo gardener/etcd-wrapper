@@ -66,12 +66,12 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func createSidecarConfig(tlsEnabled bool, hostPort string) SidecarConfig {
+func createSidecarConfig(tlsEnabled bool, hostPort string) BackupRestoreConfig {
 	var caCertBundlePath string
 	if tlsEnabled {
 		caCertBundlePath = defaultTestCaCertBundlePath
 	}
-	return SidecarConfig{
+	return BackupRestoreConfig{
 		HostPort:         hostPort,
 		TLSEnabled:       tlsEnabled,
 		CaCertBundlePath: &caCertBundlePath,

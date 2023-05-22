@@ -22,22 +22,22 @@ import (
 	"github.com/gardener/etcd-wrapper/internal/util"
 )
 
-// SidecarConfig defines parameters needed for the sidecar
-type SidecarConfig struct {
+// BackupRestoreConfig defines parameters needed for the sidecar
+type BackupRestoreConfig struct {
 	HostPort         string
 	TLSEnabled       bool
 	CaCertBundlePath *string
 }
 
-// Validate validates all parameters passed as sidecar configuration
-func (c *SidecarConfig) Validate() (err error) {
+// Validate validates backup-restore configuration.
+func (c *BackupRestoreConfig) Validate() (err error) {
 	splits := strings.Split(c.HostPort, ":")
 	if len(splits) < 2 {
 		err = errors.Join(err, fmt.Errorf("both host and port needs to be specified and should be adhere to format: <host>:<port>"))
 	}
 
 	if strings.HasPrefix(c.HostPort, "http:") || strings.HasPrefix(c.HostPort, "https:") {
-		err = errors.Join(err, fmt.Errorf("sidecar-host-port should not contain scheme"))
+		err = errors.Join(err, fmt.Errorf("backup-restore-host-port should not contain scheme"))
 	}
 	if c.TLSEnabled {
 		if c.CaCertBundlePath == nil || strings.TrimSpace(*c.CaCertBundlePath) == "" {
@@ -47,7 +47,7 @@ func (c *SidecarConfig) Validate() (err error) {
 	return
 }
 
-// GetBaseAddress returns the complete address of the backup restore sidecar
-func (c *SidecarConfig) GetBaseAddress() string {
+// GetBaseAddress returns the complete address of the backup restore container.
+func (c *BackupRestoreConfig) GetBaseAddress() string {
 	return util.ConstructBaseAddress(c.TLSEnabled, c.HostPort)
 }

@@ -40,8 +40,8 @@ type Application struct {
 }
 
 // NewApplication initializes and returns an application struct
-func NewApplication(ctx context.Context, cancelFn context.CancelFunc, sidecarConfig *types.SidecarConfig, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
-	etcdInitializer, err := bootstrap.NewEtcdInitializer(sidecarConfig, logger)
+func NewApplication(ctx context.Context, cancelFn context.CancelFunc, brConfig *types.BackupRestoreConfig, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
+	etcdInitializer, err := bootstrap.NewEtcdInitializer(brConfig, logger)
 	if err != nil {
 		return nil, err
 	}

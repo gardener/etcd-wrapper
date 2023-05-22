@@ -230,11 +230,11 @@ func testGetTLsConfig(t *testing.T) {
 }
 
 func createApplicationInstance(ctx context.Context, cancelFn context.CancelFunc, g *GomegaWithT) *Application {
-	sidecarConfig := &types.SidecarConfig{
+	brConfig := &types.BackupRestoreConfig{
 		HostPort:   ":2379",
 		TLSEnabled: false,
 	}
-	app, err := NewApplication(ctx, cancelFn, sidecarConfig, time.Minute, zap.NewExample())
+	app, err := NewApplication(ctx, cancelFn, brConfig, time.Minute, zap.NewExample())
 	g.Expect(err).To(BeNil())
 	app.cfg = &embed.Config{
 		ClientTLSInfo: transport.TLSInfo{
