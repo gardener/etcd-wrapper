@@ -45,14 +45,14 @@ type initializer struct {
 }
 
 // NewEtcdInitializer creates and returns an EtcdInitializer object
-func NewEtcdInitializer(sidecarConfig *types.SidecarConfig, logger *zap.Logger) (EtcdInitializer, error) {
-	// Validate sidecar configuration
-	if err := sidecarConfig.Validate(); err != nil {
+func NewEtcdInitializer(brConfig *types.BackupRestoreConfig, logger *zap.Logger) (EtcdInitializer, error) {
+	// Validate backup-restore configuration
+	if err := brConfig.Validate(); err != nil {
 		return nil, err
 	}
 
-	//create brclient
-	brClient, err := brclient.NewDefaultClient(*sidecarConfig, brclient.DefaultEtcdConfigFilePath)
+	//create backup-restore client
+	brClient, err := brclient.NewDefaultClient(*brConfig, brclient.DefaultEtcdConfigFilePath)
 	if err != nil {
 		return nil, err
 	}

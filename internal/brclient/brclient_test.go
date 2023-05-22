@@ -42,7 +42,7 @@ func TestSuite(t *testing.T) {
 		{"getEtcdConfig", testGetEtcdConfig},
 		{"getInitializationStatus", testGetInitializationStatus},
 		{"triggerInitializer", testTriggerInitialization},
-		{"createSidecarClient", testCreateSidecarClient},
+		{"createClient", testCreateSidecarClient},
 		{"createTLSConfig", testCreateTLSConfig},
 	}
 
@@ -184,16 +184,16 @@ func testCreateSidecarClient(t *testing.T, _ string) {
 	incorrectCAFilePath := testdataPath + "/wrong-path"
 	table := []struct {
 		description   string
-		sidecarConfig types.SidecarConfig
+		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"test: return error when incorrect sidecar config (CA filepath) is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-		{"test: return etcd client when valid sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
+		{"test: return error when incorrect sidecar config (CA filepath) is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
+		{"test: return etcd client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
 	for _, entry := range table {
 		t.Log(entry.description)
-		_, err := createSidecarClient(entry.sidecarConfig)
+		_, err := createClient(entry.sidecarConfig)
 		g.Expect(err != nil).To(Equal(entry.expectError))
 	}
 }
@@ -202,12 +202,12 @@ func testCreateTLSConfig(t *testing.T, _ string) {
 	incorrectCAFilePath := testdataPath + "/wrong-path"
 	table := []struct {
 		description   string
-		sidecarConfig types.SidecarConfig
+		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"test: return valid insecure TLS config when sidecar config does not have TLS enabled", types.SidecarConfig{TLSEnabled: false}, false},
-		{"test: return valid TLS config when sidecar config has TLS enabled and valid CA file path", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
-		{"test: return error when sidecar config has TLS enabled and invalid CA file path", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
+		{"test: return valid insecure TLS config when sidecar config does not have TLS enabled", types.BackupRestoreConfig{TLSEnabled: false}, false},
+		{"test: return valid TLS config when sidecar config has TLS enabled and valid CA file path", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
+		{"test: return error when sidecar config has TLS enabled and invalid CA file path", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
 	}
 
 	g := NewWithT(t)
@@ -222,11 +222,11 @@ func TestNewDefaultClient(t *testing.T) {
 	incorrectCAFilePath := etcdCACertFilePath + "/wrong-path"
 	table := []struct {
 		description   string
-		sidecarConfig types.SidecarConfig
+		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"test: return error when incorrect sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-		{"test: return backuprestore client when valid sidecar config is passed", types.SidecarConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
+		{"test: return error when incorrect sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
+		{"test: return backuprestore client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
 	for _, entry := range table {

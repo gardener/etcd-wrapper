@@ -70,31 +70,31 @@ type BackupRestoreClient interface {
 
 // brClient implements BackupRestoreClient interface.
 type brClient struct {
-	client             *http.Client
-	sidecarBaseAddress string
-	etcdConfigFilePath string
+	client                   *http.Client
+	backupRestoreBaseAddress string
+	etcdConfigFilePath       string
 }
 
-// NewDefaultClient creates a BackupRestoreClient using the SidecarConfig and etcd configuration at etcdConfigPath.
+// NewDefaultClient creates a BackupRestoreClient using the BackupRestoreConfig and etcd configuration at etcdConfigPath.
 // It delegates the responsibility to NewClient by passing in a default implementation of HttpClientCreator.
-func NewDefaultClient(sidecarConfig types.SidecarConfig, etcdConfigPath string) (BackupRestoreClient, error) {
-	client, err := createSidecarClient(sidecarConfig)
+func NewDefaultClient(brConfig types.BackupRestoreConfig, etcdConfigPath string) (BackupRestoreClient, error) {
+	client, err := createClient(brConfig)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(client, sidecarConfig.GetBaseAddress(), etcdConfigPath), nil
+	return NewClient(client, brConfig.GetBaseAddress(), etcdConfigPath), nil
 }
 
 // NewClient creates and returns a new BackupRestoreClient object
-func NewClient(httpClient *http.Client, sidecarBaseAddress string, etcdConfigFilePath string) BackupRestoreClient {
+func NewClient(httpClient *http.Client, backupRestoreBaseAddress string, etcdConfigFilePath string) BackupRestoreClient {
 	return &brClient{
-		client:             httpClient,
-		sidecarBaseAddress: sidecarBaseAddress,
-		etcdConfigFilePath: etcdConfigFilePath}
+		client:                   httpClient,
+		backupRestoreBaseAddress: backupRestoreBaseAddress,
+		etcdConfigFilePath:       etcdConfigFilePath}
 }
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
-	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/initialization/status")
+	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.backupRestoreBaseAddress+"/initialization/status")
 	if err != nil {
 		return Unknown, err
 	}
@@ -122,7 +122,7 @@ func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, err
 
 func (c *brClient) TriggerInitialization(ctx context.Context, validationType ValidationType) error {
 	// TODO (@aaronfern): triggering initialization should not be using `GET` verb. `POST` should be used instead. This will require changes to backup-restore (to be done later).
-	url := c.sidecarBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
+	url := c.backupRestoreBaseAddress + fmt.Sprintf("/initialization/start?mode=%s", validationType)
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, url)
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 }
 
 func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
-	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.sidecarBaseAddress+"/config")
+	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.backupRestoreBaseAddress+"/config")
 	if err != nil {
 		return "", err
 	}
@@ -177,8 +177,8 @@ func (c *brClient) createAndExecuteHTTPRequest(ctx context.Context, method, url 
 	return response, nil
 }
 
-func createSidecarClient(sidecarConfig types.SidecarConfig) (*http.Client, error) {
-	tlsConfig, err := createTLSConfig(sidecarConfig)
+func createClient(brConfig types.BackupRestoreConfig) (*http.Client, error) {
+	tlsConfig, err := createTLSConfig(brConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -192,9 +192,9 @@ func createSidecarClient(sidecarConfig types.SidecarConfig) (*http.Client, error
 	return client, nil
 }
 
-func createTLSConfig(sidecarConfig types.SidecarConfig) (*tls.Config, error) {
-	if sidecarConfig.TLSEnabled {
-		caCertPool, err := util.CreateCACertPool(*sidecarConfig.CaCertBundlePath)
+func createTLSConfig(brConfig types.BackupRestoreConfig) (*tls.Config, error) {
+	if brConfig.TLSEnabled {
+		caCertPool, err := util.CreateCACertPool(*brConfig.CaCertBundlePath)
 		if err != nil {
 			return nil, err
 		}
