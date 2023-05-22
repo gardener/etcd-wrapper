@@ -7,6 +7,8 @@ metadata:
   name: etcd-test
   namespace: default
 spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
   replicas: 3
   selector:
     matchLabels:
@@ -22,8 +24,8 @@ spec:
       containers:
         - args:
             - start-etcd
-            - --tls-enabled=false
-#            - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
+            - --backup-restore-tls-enabled=false
+          # - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
           image: etcd-wrapper-image:dev # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
           name: etcd
@@ -37,13 +39,13 @@ spec:
           volumeMounts:
             - mountPath: /var/etcd/data/
               name: etcd-test
-#            # to be used only when TLS is desired
-#            - mountPath: /var/etcd/ssl/client/ca
-#              name: etcd-client-ca
-#            - mountPath: /var/etcd/ssl/client/server
-#              name: etcd-client-server
-#            - mountPath: /var/etcd/ssl/client/client
-#              name: etcd-client-client
+        #            # to be used only when TLS is desired
+        #            - mountPath: /var/etcd/ssl/client/ca
+        #              name: etcd-client-ca
+        #            - mountPath: /var/etcd/ssl/client/server
+        #              name: etcd-client-server
+        #            - mountPath: /var/etcd/ssl/client/client
+        #              name: etcd-client-client
         - command:
             - etcdbrctl
             - server
@@ -70,12 +72,12 @@ spec:
             - --snapstore-temp-directory=/var/etcd/data/temp
             - --enable-member-lease-renewal=true
             - --k8s-heartbeat-duration=10s
-#            # to be used only when TLS is desired
-#            - --server-cert=/var/etcd/ssl/client/server/tls.crt
-#            - --server-key=/var/etcd/ssl/client/server/tls.key
-#            - --cert=/var/etcd/ssl/client/client/tls.crt
-#            - --key=/var/etcd/ssl/client/client/tls.key
-#            - --cacert=/var/etcd/ssl/client/ca/bundle.crt
+          #            # to be used only when TLS is desired
+          #            - --server-cert=/var/etcd/ssl/client/server/tls.crt
+          #            - --server-key=/var/etcd/ssl/client/server/tls.key
+          #            - --cert=/var/etcd/ssl/client/client/tls.crt
+          #            - --key=/var/etcd/ssl/client/client/tls.key
+          #            - --cacert=/var/etcd/ssl/client/ca/bundle.crt
           env:
             - name: POD_NAME
               valueFrom:
@@ -99,13 +101,13 @@ spec:
               name: etcd-test
             - mountPath: /var/etcd/config/
               name: etcd-config-file
-#            # to be used only when TLS is desired
-#            - mountPath: /var/etcd/ssl/client/ca
-#              name: etcd-client-ca
-#            - mountPath: /var/etcd/ssl/client/server
-#              name: etcd-client-server
-#            - mountPath: /var/etcd/ssl/client/client
-#              name: etcd-client-client
+      #            # to be used only when TLS is desired
+      #            - mountPath: /var/etcd/ssl/client/ca
+      #              name: etcd-client-ca
+      #            - mountPath: /var/etcd/ssl/client/server
+      #              name: etcd-client-server
+      #            - mountPath: /var/etcd/ssl/client/client
+      #              name: etcd-client-client
       hostAliases:
         - hostnames:
             - etcd-test-local
