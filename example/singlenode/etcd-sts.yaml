@@ -7,6 +7,8 @@ metadata:
   name: etcd-test
   namespace: default
 spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
   replicas: 1
   selector:
     matchLabels:
@@ -22,7 +24,7 @@ spec:
       containers:
         - args:
             - start-etcd
-            - --tls-enabled=false
+            - --backup-restore-tls-enabled=false
 #            - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
           image: etcd-wrapper-image:dev # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
