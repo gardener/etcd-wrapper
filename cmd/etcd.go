@@ -35,33 +35,33 @@ var (
 and starts an embedded etcd.
 
 Flags:
-	--backup-restore-tls
-		Enables TLS for communicating with backup-restore sidecar (disabled by default)
-	--sidecar-host-port string
-		Host address and port of the backup restore sidecar with which this container will interact during initialization. Should be of the format <host>:<port> and must not include the protocol.
-	--sidecar-ca-cert-bundle-path string
-		Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.
+	--backup-restore-tls-enabled
+		Enables TLS for communicating with backup-restore if its value is true. It is disabled by default.
+	--backup-restore-host-port string
+		Host address and port of the backup restore with which this container will interact during initialization. Should be of the format <host>:<port> and must not include the protocol.
+	--backup-restore-ca-cert-bundle-path string
+		Path of CA cert bundle (This will be used when TLS is enabled via backup-restore-tls-enabled flag.
 	--etcd-wait-ready-timeout
 		time duration the application will wait for etcd to get ready, by default it waits forever.`,
 		AddFlags: AddEtcdFlags,
 		Run:      InitAndStartEtcd,
 	}
-	sidecarConfig = types.SidecarConfig{}
+	backupRestoreConfig = types.BackupRestoreConfig{}
 	// waitReadyTimeout is the timeout for an embedded etcd server to be ready.
 	waitReadyTimeout time.Duration
 )
 
 // AddEtcdFlags adds flags from the parsed FlagSet into application structs
 func AddEtcdFlags(fs *flag.FlagSet) {
-	fs.BoolVar(&sidecarConfig.TLSEnabled, "tls-enabled", types.DefaultTLSEnabled, "Enables TLS for the application")
-	fs.StringVar(&sidecarConfig.HostPort, "sidecar-base-address", types.DefaultSideCarHostPort, "Base address of the backup restore sidecar")
-	sidecarConfig.CaCertBundlePath = fs.String("sidecar-ca-cert-bundle-path", "", "File path of CA cert bundle") //TODO @aaronfern: define a reasonable default
+	fs.BoolVar(&backupRestoreConfig.TLSEnabled, "backup-restore-tls-enabled", types.DefaultBackupRestoreTLSEnabled, "Enables TLS for communicating with backup-restore container")
+	fs.StringVar(&backupRestoreConfig.HostPort, "backup-restore-host-port", types.DefaultBackupRestoreHostPort, "Host and Port to be used to connect to the backup-restore container")
+	backupRestoreConfig.CaCertBundlePath = fs.String("backup-restore-ca-cert-bundle-path", "", "File path of CA cert bundle to help establish TLS communication with backup-restore container") //TODO @aaronfern: define a reasonable default
 	fs.DurationVar(&waitReadyTimeout, "etcd-wait-ready-timeout", 0, "Time duration to wait for etcd to be ready")
 }
 
 // InitAndStartEtcd sets up and starts an embedded etcd
 func InitAndStartEtcd(ctx context.Context, cancelFn context.CancelFunc, logger *zap.Logger) error {
-	etcdApp, err := app.NewApplication(ctx, cancelFn, &sidecarConfig, waitReadyTimeout, logger)
+	etcdApp, err := app.NewApplication(ctx, cancelFn, &backupRestoreConfig, waitReadyTimeout, logger)
 	if err != nil {
 		return err
 	}

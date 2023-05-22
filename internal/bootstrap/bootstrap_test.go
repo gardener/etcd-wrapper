@@ -197,7 +197,7 @@ func TestTryGetEtcdConfig(t *testing.T) {
 func TestNewEtcdInitializer(t *testing.T) {
 	table := []struct {
 		description   string
-		sidecarConfig types.SidecarConfig
+		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
 		{"test: should return error when invalid sidecar config is passed", createSidecarConfig(true, "", ""), true},
@@ -252,8 +252,8 @@ func getTestHttpClient(responseCode int, responseBody []byte) *http.Client {
 	}
 }
 
-func createSidecarConfig(tlsEnabled bool, hostPort string, caCertBundlePath string) types.SidecarConfig {
-	return types.SidecarConfig{
+func createSidecarConfig(tlsEnabled bool, hostPort string, caCertBundlePath string) types.BackupRestoreConfig {
+	return types.BackupRestoreConfig{
 		HostPort:         hostPort,
 		TLSEnabled:       tlsEnabled,
 		CaCertBundlePath: &caCertBundlePath,
