@@ -15,29 +15,29 @@ ETCD_CLIENT_SVC_NAME=""
 ETCD_PEER_SVC_NAME=""
 CERT_EXPIRY="12h"
 FORCE_CREATE_PKI_RESOURCES="false"
+FORCE_CREATE_KIND_CLUSTER="false"
 
 declare -a PKI_RESOURCES
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-USAGE=$(create_usage)
 
 source "${SCRIPT_DIR}"/generate_pki.sh
 source "${SCRIPT_DIR}"/generate_k8s_secrets.sh
 
 function create_usage() {
   usage=$(printf '%s\n' '
-  usage: $(basename $0) [options]
-
-  options:
+  usage: $(basename $0) [Options]
+  Options:
    -k | --kind-cluster-name           <kind-cluster-name>             (Optional) name of the kind cluster. if not specified, uses default name "kind"
    -n | --namespace                   <namespace>                     (Optional) kubernetes namespace where etcd resources will be created. if not specified uses "default"
    -s | --cluster-size                <size of etcd cluster>          (Optional) size of an etcd cluster. Supported values are 1 or 3. Defaults to 1
-   -t | --tls-enabled                 <is-tls-enabled>                   (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ["true" | "false"]. Defaults to "false"
+   -t | --tls-enabled                 <is-tls-enabled>                (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ["true" | "false"]. Defaults to "false"
    -i | --etcd-client-svc-name        <name of etcd client service>   (Optional) name of the etcd kubernetes client service. (Required) if TLS has been enabled
    -p | --etcd-peer-svc-name          <name of etcd peer service>     (Optional) name of the etcd kubernetes peer service. (Required) if TLS has been enabled
    -e | --cert-expiry                 <certificate expiry>            (Optional) common expiry for all certificates generated. Defaults to "12h"
    -o | --target-pki-dir              <target PKI directory>          (Optional) target directory to put all generated PKI resources (certificates and keys). (Required) if TLS has been enabled
-   -f | --force-create-pki-resources  <should-force-create>           (Optional) Defaults to "false" which means that PKI resources will not be created if they all exists. Even if one the resources does not exist PKI resources will be created again. If it true, then it forces re-creation of all PKI resources
+   --force-create-pki-resources                                       (Optional) Defaults to "false" which means that PKI resources will not be created if they all exists. Even if one the resources does not exist PKI resources will be created again. If it true, then it forces re-creation of all PKI resources
+   --force-create-kind-cluster                                        (Optional) Defaults to "false" which means it will not re-create KIND cluster if one with the given name already exists. To force recreation set this flag to "true".
    ')
   echo "${usage}"
 }
@@ -105,9 +105,11 @@ function parse_flags() {
       shift
       TARGET_PKI_DIR="$1"
       ;;
-    --force-create-pki-resources | -f)
-      shift
-      FORCE_CREATE_PKI_RESOURCES=$(echo "$1" | aws '{print tolower($0)}')
+    --force-create-pki-resources)
+      FORCE_CREATE_PKI_RESOURCES="true"
+      ;;
+    --force-create-kind-cluster)
+      FORCE_CREATE_KIND_CLUSTER="true"
       ;;
     --help | -h)
       shift
@@ -136,16 +138,31 @@ function validate_args() {
   fi
 }
 
-function create_kind_cluster() {
-  local cluster_name
+function check_and_create_kind_cluster() {
+  local cluster_name check_cluster_exists
   cluster_name=$(get_kind_cluster_name)
 
-  # check if the cluster with this name already exists
-  if kind get clusters | grep "${cluster_name}"; then
-    echo "cluster ${cluster_name} already exists, deleting the cluster to start fresh"
-    delete_kind_cluster "${cluster_name}"
-  fi
+  check_cluster_exists=$(kind get clusters | grep "${cluster_name}")
 
+  if [[ "${check_cluster_exists}" != "${cluster_name}" ]]; then
+    echo "cluster ${cluster_name} does not exist. Creating KIND cluster."
+    create_kind_cluster "${cluster_name}"
+  else
+    echo "cluster ${cluster_name} already exists..."
+    if [[ "${FORCE_CREATE_KIND_CLUSTER}" == "true" ]]; then
+      echo "re-creating cluster ${cluster_name}..."
+      delete_kind_cluster "${cluster_name}"
+      create_kind_cluster "${cluster_name}"
+    fi
+  fi
+}
+
+function create_kind_cluster() {
+  if [[ $# -ne 1 ]]; then
+    echo -e "${FUNCNAME[0]} expects a cluster name"
+    exit 1
+  fi
+  cluster_name="$1"
   # create a new KIND cluster
   echo "creating kind cluster $cluster_name"
   cat <<EOF | kind create cluster -n "${cluster_name}" --config=-
@@ -203,10 +220,16 @@ function create_pki_resources() {
     if [[ "${FORCE_CREATE_PKI_RESOURCES}" == "true" || "${all_resources_exist}" == "false" ]]; then
       pki::check_prerequisites
       pki::main "${TARGET_PKI_DIR}" "${CERT_EXPIRY}" "${ETCD_CLIENT_SVC_NAME}" "${ETCD_PEER_SVC_NAME}" "${TARGET_NAMESPACE}"
+    else
+      echo "skipping creation of TLS resources as they already exist"
     fi
-    target_manifest_dir="${SCRIPT_DIR}"/manifests/common
-    k8s::main "${TARGET_NAMESPACE}" "${TARGET_PKI_DIR}" "${target_manifest_dir}"
   fi
+}
+
+function create_k8s_secrets() {
+  k8s::check_prerequisites
+  target_manifest_dir="${SCRIPT_DIR}"/manifests/common
+  k8s::main "${TARGET_NAMESPACE}" "${TARGET_PKI_DIR}" "${target_manifest_dir}"
 }
 
 function all_pki_resources_exist() {
@@ -227,10 +250,15 @@ function main() {
   parse_flags "$@"
   validate_args
   # create kind cluster and k8s resources
-  create_kind_cluster
+  check_and_create_kind_cluster
   create_namespace
-  # create certificates and keys if required and then it will use the PKI resources to create k8s secrets in the target namespace.
+  # create certificates and keys required to enabled TLS for client and peer communication.
   create_pki_resources
+  # create k8s secrets in the target namespace for the TLS resources created previously
+  create_k8s_secrets
   # creates an etcd cluster (single or multi-node)
   #create_etcd_cluster
 }
+
+USAGE=$(create_usage)
+main "$@"

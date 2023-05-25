@@ -4,42 +4,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-#function pki::create_usage() {
-#  local usage=$(printf '%s\n' '
-#    Usage: $(basename $0) [Options]
-#
-#    Options:
-#      -o <target-pki-path>          (Required) Target path where all generated PKI resources will be made available.
-#      -e <certificate-expiry>       (Optional) Time when the certificates will expire. Defaults to 12h.
-#      -p <etcd-peer-service-name>   (Required) Etcd-Peer service name.
-#      -s <etcd-client-service-name> (Required) Etcd-Client service name.
-#      -n <namespace>                (Optional) Namespace where etcd pods will be deployed. If not set uses default namespace.
-#  ')
-#  echo "${usage}"
-#}
-
-#function pki::validate_args() {
-#  if [[ -z "${pki_dir}" ]]; then
-#    echo -e "Target path to store PKI resources is not set. See Usage:\n${USAGE}"
-#    exit 1
-#  fi
-#
-#  if [[ -z "${ETCD_CLIENT_SERVICE_NAME}" ]]; then
-#    echo -e "Etcd-Server service name is not set. See Usage:\n${USAGE}"
-#    exit 1
-#  fi
-#
-#  if [[ -z "${ETCD_PEER_SERVICE_NAME}" ]]; then
-#    echo -e "Etcd-Peer service name is not set. See Usage:\n${USAGE}"
-#    exit 1
-#  fi
-#
-#  if [[ -z "${ETCD_NAMESPACE}" ]]; then
-#    echo -e "Etcd namespace is not set. See Usage:\n${USAGE}"
-#    exit 1
-#  fi
-#}
-
 function pki::check_prerequisites() {
   if ! command -v cfssl &>/dev/null; then
     echo -e "cfssl is not installed. Please refer: https://github.com/cloudflare/cfssl#installation"
@@ -50,40 +14,6 @@ function pki::check_prerequisites() {
     exit 1
   fi
 }
-
-#function pki::parse_args() {
-#  while getopts 'o:p:e:s:n:h' opt; do
-#    case "$opt" in
-#    o)
-#      pki_dir="${OPTARG}"
-#      ;;
-#    p)
-#      ETCD_PEER_SERVICE_NAME="${OPTARG}"
-#      ;;
-#    e)
-#      CERTIFICATE_EXPIRY="${OPTARG}"
-#      ;;
-#    s)
-#      ETCD_CLIENT_SERVICE_NAME="${OPTARG}"
-#      ;;
-#    n)
-#      ETCD_NAMESPACE="${OPTARG}"
-#      ;;
-#    h)
-#      echo "${USAGE}"
-#      exit 0
-#      ;;
-#    :)
-#      echo -e "option requires an argument.\n${USAGE}"
-#      exit 1
-#      ;;
-#    ?)
-#      echo -e "invalid command line option.\n${USAGE}"
-#      exit 1
-#      ;;
-#    esac
-#  done
-#}
 
 ##########################  CA Certificate and Key Generation functions ############################
 

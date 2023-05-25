@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+function k8s::check_prerequisites() {
+  # check if you have gnu base64 setup properly as that will be used to base64 encode secrets
+  if ! echo "test-string" | base64 -w 0 &>/dev/null; then
+    echo -e "install gnu-base64 and ensure that it is first in the PATH. Refer: https://github.com/gardener/gardener/blob/master/docs/development/local_setup.md#preparing-the-setup"
+    exit 1
+  fi
+}
+
 function k8s::generate_etcd_ca_secret() {
   if [[ $# -ne 3 ]]; then
     echo -e "${FUNCNAME[0]} expects three arguments. Target namespace, PKI directory and target directory to store generated secret YAML"
@@ -148,7 +156,7 @@ function k8s::base64_encode() {
   echo "$encoded"
 }
 
-function main() {
+function k8s::main() {
   local namespace="$1"
   local pki_dir="$2"
   local target_dir="$3"
