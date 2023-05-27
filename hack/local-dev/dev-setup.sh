@@ -22,7 +22,7 @@ declare -a PKI_RESOURCES
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 
 source "${SCRIPT_DIR}"/generate_pki.sh
-source "${SCRIPT_DIR}"/generate_k8s_secrets.sh
+source "${SCRIPT_DIR}"/generate_k8s_resources.sh
 
 function create_usage() {
   usage=$(printf '%s\n' '
@@ -33,7 +33,7 @@ function create_usage() {
    -s | --cluster-size                <size of etcd cluster>          (Optional) size of an etcd cluster. Supported values are 1 or 3. Defaults to 1
    -t | --tls-enabled                 <is-tls-enabled>                (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ["true" | "false"]. Defaults to "false"
    -i | --etcd-client-svc-name        <name of etcd client service>   (Optional) name of the etcd kubernetes client service. (Required) if TLS has been enabled
-   -p | --etcd-peer-svc-name          <name of etcd peer service>     (Optional) name of the etcd kubernetes peer service. (Required) if TLS has been enabled
+   -p | --etcd-peer-svc-name          <name of etcd peer service>     (Required) name of the etcd kubernetes peer service.
    -e | --cert-expiry                 <certificate expiry>            (Optional) common expiry for all certificates generated. Defaults to "12h"
    -o | --target-pki-dir              <target PKI directory>          (Optional) target directory to put all generated PKI resources (certificates and keys). (Required) if TLS has been enabled
    --force-create-pki-resources                                       (Optional) Defaults to "false" which means that PKI resources will not be created if they all exists. Even if one the resources does not exist PKI resources will be created again. If it true, then it forces re-creation of all PKI resources
@@ -57,15 +57,19 @@ function initialize_pki_resources_arr() {
 
 function check_prerequisites() {
   if ! command -v docker &>/dev/null; then
-    echo -e "docker is not installed. Please install docker, refer: https://docs.docker.com/desktop/"
+    echo -e "docker is not installed. Please install, refer: https://docs.docker.com/desktop/"
     exit 1
   fi
   if ! command -v kind &>/dev/null; then
-    echo -e "kind command is not found. Please install kind, refer: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"
+    echo -e "kind command is not found. Please install, refer: https://kind.sigs.k8s.io/docs/user/quick-start/#installation"
     exit 1
   fi
   if ! command -v skaffold &>/dev/null; then
-    echo -e "skaffold is not installed. Please install skaffold, refer: https://skaffold.dev/docs/install/"
+    echo -e "skaffold is not installed. Please install, refer: https://skaffold.dev/docs/install/"
+    exit 1
+  fi
+  if ! command -v yq &>/dev/null; then
+    echo -e "yq is not installed. Please install, refer: https://github.com/mikefarah/yq#install"
     exit 1
   fi
 }
@@ -139,12 +143,11 @@ function validate_args() {
 }
 
 function check_and_create_kind_cluster() {
-  local cluster_name check_cluster_exists
+  local cluster_name existing_clusters
   cluster_name=$(get_kind_cluster_name)
+  cluster_exists=$(cluster_exists "${cluster_name}")
 
-  check_cluster_exists=$(kind get clusters | grep "${cluster_name}")
-
-  if [[ "${check_cluster_exists}" != "${cluster_name}" ]]; then
+  if [[ "${cluster_exists}" == "false" ]]; then
     echo "cluster ${cluster_name} does not exist. Creating KIND cluster."
     create_kind_cluster "${cluster_name}"
   else
@@ -173,12 +176,35 @@ function create_kind_cluster() {
 EOF
 }
 
+function pki_dir() {
+  local cluster_name="kind"
+  if [[ -n "${KIND_CLUSTER_NAME}" ]]; then
+    cluster_name="${KIND_CLUSTER_NAME}"
+  fi
+  echo "${cluster_name}"
+}
+
 function get_kind_cluster_name() {
   local cluster_name="kind"
   if [[ -n "${KIND_CLUSTER_NAME}" ]]; then
     cluster_name="${KIND_CLUSTER_NAME}"
   fi
   echo "${cluster_name}"
+}
+
+function cluster_exists() {
+  if [[ $# -ne 1 ]]; then
+    echo -e "${FUNCNAME[0]} expects name of a kind cluster"
+    exit 1
+  fi
+  local existing_clusters cluster_name exists
+  cluster_name="$1"
+  exists="false"
+  existing_clusters=$( (kind get clusters) 2>&1)
+  if [[ $existing_clusters =~ ^"${cluster_name}"$ ]]; then
+    exists="true"
+  fi
+  echo "${exists}"
 }
 
 function delete_kind_cluster() {
@@ -243,6 +269,45 @@ function all_pki_resources_exist() {
   echo "${all_exists}"
 }
 
+function create_etcd_config() {
+  local scheme="http"
+  if [[ "${TLS_ENABLED}" == "true" ]]; then
+    scheme="https"
+  fi
+  local etcd_namespace etcd_peer_service_name etcd_initial_cluster configmap_target_dir
+  etcd_namespace="${TARGET_NAMESPACE}"
+  etcd_peer_service_name="${ETCD_PEER_SVC_NAME}"
+
+  if [[ "${ETCD_CLUSTER_SIZE}" -gt 1 ]]; then
+    for ((i = 0; i < "${ETCD_CLUSTER_SIZE}"; i++)); do
+      etcd_initial_cluster+="etcd-main-${i}=${scheme}://etcd-main-${i}.${etcd_peer_service_name}.${etcd_namespace}.svc:2380,"
+    done
+    etcd_initial_cluster="${etcd_initial_cluster%?}"
+    configmap_target_dir="${SCRIPT_DIR}"/manifests/multinode
+  else
+    etcd_initial_cluster="etcd-main-0=${scheme}://etcd-main-0.${etcd_peer_service_name}.${etcd_namespace}.svc:2380"
+    configmap_target_dir="${SCRIPT_DIR}"/manifests/singlenode
+  fi
+
+  echo "> Creating etcd configuration at ${SCRIPT_DIR}/manifests/config/etcd.config.yaml..."
+  export etcd_namespace etcd_peer_service_name scheme etcd_initial_cluster
+  envsubst <"${SCRIPT_DIR}"/manifests/config/etcd.config.template.yaml >"${SCRIPT_DIR}"/manifests/config/etcd.config.yaml
+  unset etcd_namespace etcd_peer_service_name scheme etcd_initial_cluster
+
+  if [[ "${TLS_ENABLED}" == "true" ]]; then
+    yq -i \
+      '(.client-transport-security.cert-file = "/var/etcd/ssl/client/server/tls.crt")
+       | (.client-transport-security.key-file = "/var/etcd/ssl/client/server/tls.key")
+       | (.client-transport-security.client-cert-auth = true)
+       | (.client-transport-security.trusted-ca-file = "/var/etcd/ssl/client/ca/bundle.crt")
+       | (.client-transport-security.auto-tls = false)' \
+      "${SCRIPT_DIR}"/manifests/config/etcd.config.yaml
+  fi
+
+  echo "> Creating k8s configmap from ${SCRIPT_DIR}/manifests/config/etcd.config.yaml and writing to ${configmap_target_dir}.."
+  k8s::generate_etcd_configmap "etcd-bootstrap" "etcd-main" "${SCRIPT_DIR}"/manifests/config/etcd.config.yaml "${configmap_target_dir}"
+}
+
 function main() {
   # check pre-requisites required to run this script
   check_prerequisites
@@ -256,6 +321,7 @@ function main() {
   create_pki_resources
   # create k8s secrets in the target namespace for the TLS resources created previously
   create_k8s_secrets
+  create_etcd_config
   # creates an etcd cluster (single or multi-node)
   #create_etcd_cluster
 }

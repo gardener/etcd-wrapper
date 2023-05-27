@@ -146,6 +146,27 @@ function k8s::generate_secret() {
 EOF
 }
 
+function k8s::generate_etcd_configmap() {
+  if [[ $# -ne 4 ]]; then
+    echo -e "${FUNCNAME[0]} expects ConfigMap name, etcd instance name, source path for etcd configuration and target path to store generated ConfigMap"
+    exit 1
+  fi
+  local name="$1"
+  local etcd_instance_name="$2"
+  local etcd_config_path="$3"
+  local target_dir="$4"
+
+  echo "> Writing k8s configmap ${target_dir}..."
+  kubectl create configmap "${name}" --from-file "${etcd_config_path}" --dry-run=true -oyaml |
+    yq 'del(.metadata.creationTimestamp)' |
+    yq eval "(.metadata.labels.name = \"etcd\")
+    | (.metadata.labels.app = \"etcd-statefulset\")
+    | (.metadata.labels.\"gardener.cloud/role\" = \"control-plane\")
+    | (.metadata.labels.role = \"main\")
+    | (.metadata.labels.instance = \"${etcd_instance_name}\")
+  " >"${target_dir}/${name}".yaml
+}
+
 function k8s::base64_encode() {
   if [[ $# -ne 1 ]]; then
     echo -e "k8s::base64_encode expects one argument which is the target file path to be base64 encoded"
