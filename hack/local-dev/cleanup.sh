@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_DIR="$(cd "$(dirname "$SCRIPT_DIR")/.." &>/dev/null && pwd)"
 
 echo "> Cleaning up all generated files..."
 rm -rf "${SCRIPT_DIR}"/manifests/common
