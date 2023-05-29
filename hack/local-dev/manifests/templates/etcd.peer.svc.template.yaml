@@ -3,30 +3,26 @@ kind: Service
 metadata:
   labels:
     app: etcd-statefulset
-    instance: etcd-test
+    instance: ${etcd_name}
     name: etcd
-  name: etcd-test-client
-  namespace: default
+    role: test
+  name: ${etcd_name}-peer
 spec:
+  clusterIP: None
+  clusterIPs:
+    - None
   internalTrafficPolicy: Cluster
   ipFamilies:
     - IPv4
   ipFamilyPolicy: SingleStack
   ports:
-    - name: client
-      port: 2379
-      protocol: TCP
-      targetPort: 2379
-    - name: server
+    - name: peer
       port: 2380
       protocol: TCP
       targetPort: 2380
-    - name: backuprestore
-      port: 8080
-      protocol: TCP
-      targetPort: 8080
+  publishNotReadyAddresses: true
   selector:
-    instance: etcd-test
+    instance: ${etcd_name}
     name: etcd
   sessionAffinity: None
   type: ClusterIP

@@ -4,6 +4,11 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+SECRETS_DIR="${SCRIPT_DIR}"/secrets
+SECRET_REQUESTS_DIR=${SECRETS_DIR}/requests
+
 function pki::check_prerequisites() {
   if ! command -v cfssl &>/dev/null; then
     echo -e "cfssl is not installed. Please refer: https://github.com/cloudflare/cfssl#installation"
@@ -15,15 +20,13 @@ function pki::check_prerequisites() {
   fi
 }
 
-##########################  CA Certificate and Key Generation functions ############################
-
 function pki::create_ca_config() {
-  if [[ $# -ne 2 ]]; then
-    echo -e "${FUNCNAME[0]} function expects complete target path to CA config JSON and certificate expiry"
+  if [[ $# -ne 1 ]]; then
+    echo -e "${FUNCNAME[0]} function expects a certificate expiry"
     exit 1
   fi
-  local path="$1"
-  local cert_expiry="$2"
+  local cert_expiry="$1"
+  local path="${SECRET_REQUESTS_DIR}"/ca-config.json
   echo "writing ${path}"
   cat >"${path}" <<EOF
   {
@@ -63,106 +66,108 @@ function pki::create_ca_config() {
 EOF
 }
 
-function pki::generate_etcd_ca_certificate_key_pair() {
-  if [[ $# -ne 2 ]]; then
-    echo -e "${FUNCNAME[0]} function expects PKI target directory and certificate expiry"
+function pki::create_ca_csr_config() {
+  if [[ $# -ne 1 ]]; then
+    echo -e "${FUNCNAME[0]} function expects common-name"
     exit 1
   fi
-  local pki_dir="$1"
-  local cert_expiry="$2"
-  # create etcd CA config and CSR
-  local etcd_ca_json_path="${pki_dir}"/requests/ca-config.json
-  local etcd_ca_csr_path="${pki_dir}"/requests/etcd-ca-csr.json
-  pki::create_ca_config "${etcd_ca_json_path}" "${cert_expiry}"
-  pki::create_ca_csr_config "${etcd_ca_csr_path}" etcd-ca
-  # generate etcd CA certificate and private key
-  echo "> Generating ETCD CA certificate and private key at location ${pki_dir} ..."
-  cfssl gencert -initca "${etcd_ca_csr_path}" | cfssljson -bare "${pki_dir}"/ca -
+  local common_name="$1"
+  local path="${SECRET_REQUESTS_DIR}/${common_name}"-csr.json
+  echo "writing ${path}"
+  cat >"${path}" <<EOF
+  {
+    "CN": "${common_name}",
+    "key": {
+      "algo": "rsa",
+      "size": 2048
+    },
+    "names": [
+      {
+        "O": "k8s",
+        "OU": "etcd-cluster",
+        "L": "Walldorf",
+        "ST": "BW",
+        "C": "DE"
+      }
+    ]
+  }
+EOF
 }
 
-##################################################################################################
 
-#######################  Etcd Server Certificate and Key Generation functions #####################
+function pki::generate_etcd_ca_certificate_key_pair() {
+  if [[ $# -ne 1 ]]; then
+    echo -e "${FUNCNAME[0]} function expects a certificate expiry"
+    exit 1
+  fi
+  local cert_expiry="$1"
+  # create etcd CA config and CSR
+  pki::create_ca_config "${cert_expiry}"
+  pki::create_ca_csr_config "etcd-ca"
+  # generate etcd CA certificate and private key
+  echo "> Generating ETCD CA certificate and private key at location ${SECRETS_DIR} ..."
+  cfssl gencert -initca "${SECRET_REQUESTS_DIR}"/etcd-ca-csr.json | cfssljson -bare "${SECRETS_DIR}"/ca -
+}
 
 function pki::generate_etcd_server_certificate_key_pair() {
-  if [[ $# -ne 3 ]]; then
-    echo -e "${FUNCNAME[0]} function expects namespace, PKI target directory and etcd client service name"
+  if [[ $# -ne 2 ]]; then
+    echo -e "${FUNCNAME[0]} function expects namespace and etcd name"
     exit 1
   fi
 
-  local pki_dir="$1"
-  local namespace="$2"
-  local etcd_client_svc_name="$3"
+  local namespace="$1"
+  local etcd_name="$2"
+  local etcd_client_svc_name="${etcd_name}"-client
 
   sans=$(pki::create_subject_alternate_names "${namespace}" "${etcd_client_svc_name}")
-  pki::create_etcd_csr_config "${pki_dir}"/requests/etcd-server-csr.json "${sans}"
+  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-server-csr.json "${sans}"
   echo "> Generating ETCD server certificate and private key..."
   cfssl gencert \
-    -ca "${pki_dir}"/ca.pem \
-    -ca-key "${pki_dir}"/ca-key.pem \
-    -config "${pki_dir}"/requests/ca-config.json \
+    -ca "${SECRETS_DIR}"/ca.pem \
+    -ca-key "${SECRETS_DIR}"/ca-key.pem \
+    -config "${SECRET_REQUESTS_DIR}"/ca-config.json \
     -profile=etcd-server \
-    "${pki_dir}"/requests/etcd-server-csr.json | cfssljson -bare "${pki_dir}"/etcd-server
+    "${SECRET_REQUESTS_DIR}"/etcd-server-csr.json | cfssljson -bare "${SECRETS_DIR}"/etcd-server
 }
 
-##################################################################################################
-
-#######################  Etcd Peer Server Certificate and Key Generation functions #####################
-
 function pki::generate_etcd_peer_ca_certificate_key_pair() {
-  if [[ $# -ne 1 ]]; then
-    echo -e "${FUNCNAME[0]} function expects PKI target directory"
-    exit 1
-  fi
-  local pki_dir="$1"
-  local etcd_peer_ca_csr_path="${pki_dir}"/requests/etcd-peer-ca-csr.json
-  pki::create_ca_csr_config "${etcd_peer_ca_csr_path}" etcd-peer-ca
+  pki::create_ca_csr_config "etcd-peer-ca"
   # generate etcd CA certificate and private key
-  echo "> Generating ETCD Peer CA certificate and private key at location ${pki_dir} ..."
-  cfssl gencert -initca "${etcd_peer_ca_csr_path}" | cfssljson -bare "${pki_dir}"/peer-ca -
+  echo "> Generating ETCD Peer CA certificate and private key at location ${SECRETS_DIR} ..."
+  cfssl gencert -initca "${SECRET_REQUESTS_DIR}"/etcd-peer-ca-csr.json | cfssljson -bare "${SECRETS_DIR}"/peer-ca -
 }
 
 function pki::generate_etcd_peer_certificate_key_pair() {
-  if [[ $# -ne 3 ]]; then
-    echo -e "${FUNCNAME[0]} function expects namespace, PKI target directory and etcd peer service name"
+  if [[ $# -ne 2 ]]; then
+    echo -e "${FUNCNAME[0]} function expects namespace and etcd name"
     exit 1
   fi
 
-  local pki_dir="$1"
-  local namespace="$2"
-  local etcd_peer_svc_name="$3"
+  local namespace="$1"
+  local etcd_name="$2"
+  local etcd_peer_svc_name="${etcd_name}"-peer
 
   local sans_arr
   sans_arr=$(pki::create_subject_alternate_names "${namespace}" "${etcd_peer_svc_name}")
-  pki::create_etcd_csr_config "${pki_dir}"/requests/etcd-peer-csr.json "${sans_arr[@]}"
+  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-peer-csr.json "${sans_arr[@]}"
   echo "> Generating ETCD peer certificate and private key..."
   cfssl gencert \
-    -ca "${pki_dir}"/peer-ca.pem \
-    -ca-key "${pki_dir}"/peer-ca-key.pem \
-    -config "${pki_dir}"/requests/ca-config.json \
+    -ca "${SECRETS_DIR}"/peer-ca.pem \
+    -ca-key "${SECRETS_DIR}"/peer-ca-key.pem \
+    -config "${SECRET_REQUESTS_DIR}"/ca-config.json \
     -profile=etcd-peer \
-    "${pki_dir}"/requests/etcd-peer-csr.json | cfssljson -bare "${pki_dir}"/etcd-peer
+    "${SECRET_REQUESTS_DIR}"/etcd-peer-csr.json | cfssljson -bare "${SECRETS_DIR}"/etcd-peer
 }
 
-##################################################################################################
-
-#######################  Etcd Client Certificate and Key Generation functions #####################
-
 function pki::generate_etcd_client_certificate_key_pair() {
-  if [[ $# -ne 1 ]]; then
-    echo -e "${FUNCNAME[0]} function expects PKI target directory and etcd peer service name"
-    exit 1
-  fi
-  local pki_dir="$1"
-
-  pki::create_etcd_csr_config "${pki_dir}"/requests/etcd-client-csr.json ""
+  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-client-csr.json ""
   echo "> Generating ETCD client certificate and private key..."
   cfssl gencert \
-    -ca "${pki_dir}"/ca.pem \
-    -ca-key "${pki_dir}"/ca-key.pem \
-    -config "${pki_dir}"/requests/ca-config.json \
+    -ca "${SECRETS_DIR}"/ca.pem \
+    -ca-key "${SECRETS_DIR}"/ca-key.pem \
+    -config "${SECRET_REQUESTS_DIR}"/ca-config.json \
     -profile=etcd-peer \
-    "${pki_dir}"/requests/etcd-client-csr.json | cfssljson -bare "${pki_dir}"/etcd-client
+    "${SECRET_REQUESTS_DIR}"/etcd-client-csr.json | cfssljson -bare "${SECRETS_DIR}"/etcd-client
 }
 
 ##################################################################################################
@@ -188,34 +193,6 @@ function pki::create_etcd_csr_config() {
       {
         "O": "k8s",
         "OU": "etcd",
-        "L": "Walldorf",
-        "ST": "BW",
-        "C": "DE"
-      }
-    ]
-  }
-EOF
-}
-
-function pki::create_ca_csr_config() {
-  if [[ $# -ne 2 ]]; then
-    echo -e "${FUNCNAME[0]} function expects complete target path to CA CSR config JSON and common-name"
-    exit 1
-  fi
-  local path="$1"
-  local common_name="$2"
-  echo "writing ${path}"
-  cat >"${path}" <<EOF
-  {
-    "CN": "${common_name}",
-    "key": {
-      "algo": "rsa",
-      "size": 2048
-    },
-    "names": [
-      {
-        "O": "k8s",
-        "OU": "etcd-cluster",
         "L": "Walldorf",
         "ST": "BW",
         "C": "DE"
@@ -251,25 +228,25 @@ function pki::create_subject_alternate_names() {
   echo "${joined_sans:1}"
 }
 
+
+
 function pki::main() {
-  if [[ $# -ne 5 ]]; then
-    echo -e "${FUNCNAME[0]} expects PKI target dir, certificate expiry, etcd client service name, etcd peer service name and etcd namespace"
+  if [[ $# -ne 3 ]]; then
+    echo -e "${FUNCNAME[0]} expects namespace, etcd name and certificate expiry"
     exit 1
   fi
 
-  local pki_dir="$1"
-  local cert_expiry="$2"
-  local etcd_client_svc_name="$3"
-  local etcd_peer_svc_name="$4"
-  local etcd_namespace="$5"
+  local namespace="$1"
+  local etcd_name="$2"
+  local cert_expiry="$3"
 
   echo "> Creating PKI (certificates and keys) resources..."
-  mkdir -p "${pki_dir}"/requests
-  pki::generate_etcd_ca_certificate_key_pair "${pki_dir}" "${cert_expiry}"
-  pki::generate_etcd_server_certificate_key_pair "${pki_dir}" "${etcd_namespace}" "${etcd_client_svc_name}"
-  pki::generate_etcd_peer_ca_certificate_key_pair "${pki_dir}"
-  pki::generate_etcd_peer_certificate_key_pair "${pki_dir}" "${etcd_namespace}" "${etcd_peer_svc_name}"
-  pki::generate_etcd_client_certificate_key_pair "${pki_dir}"
+  mkdir -p "${SECRET_REQUESTS_DIR}"
+  pki::generate_etcd_ca_certificate_key_pair "${cert_expiry}"
+  pki::generate_etcd_peer_ca_certificate_key_pair
+  pki::generate_etcd_server_certificate_key_pair "${namespace}" "${etcd_name}"
+  pki::generate_etcd_peer_certificate_key_pair "${namespace}" "${etcd_name}"
+  pki::generate_etcd_client_certificate_key_pair
 }
 
 # You can use this script stand-alone. Just uncomment the following lines or call the functions in different bash script.
