@@ -212,7 +212,7 @@ function k8s::generate_statefulset() {
     etcd_client_server_secret_name="${etcd_name}-server" yq -i '.spec.template.spec.volumes += {"name": "etcd-client-server", "secret": {"defaultMode": 420, "secretName": env(etcd_client_server_secret_name)}}' "${target_path}"
     yq -i '.spec.template.spec.volumes += {"name": "etcd-client-client", "secret": {"defaultMode": 420, "secretName": "etcd-client"}}' "${target_path}"
     # add TLS arguments to etcd-wrapper container arguments
-    yq -i 'spec.template.spec.containers[0].args += "-sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
+    yq -i '.spec.template.spec.containers[0].args += "--backup-restore-ca-cert-bundle-path=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
   else
     yq -i '.spec.template.spec.containers[1].command += "--insecure-skip-tls-verify=true"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--insecure-transport=true"' "${target_path}"

@@ -24,7 +24,6 @@ spec:
         - args:
             - start-etcd
             - --backup-restore-tls-enabled=${tls_enabled}
-            #            - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
           image: ${etcd_wrapper_image} # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
           name: etcd

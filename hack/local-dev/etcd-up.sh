@@ -9,7 +9,7 @@ TARGET_NAMESPACE=""
 # TLS_ENABLED possible values 'true' and 'false' (default). If its value is true then TLS resources will be generated and all communication will be TLS enabled.
 TLS_ENABLED="false" #
 ETCD_CLUSTER_SIZE=1
-ETCD_INSTANCE_NAME=""
+ETCD_INSTANCE_NAME="etcd-main"
 CERT_EXPIRY="12h"
 FORCE_CREATE_PKI_RESOURCES="false"
 ETCD_BR_IMAGE=""
@@ -33,7 +33,7 @@ function create_usage() {
    -n | --namespace                   <namespace>                           (Optional) kubernetes namespace where etcd resources will be created. if not specified uses 'default'
    -s | --cluster-size                <size of etcd cluster>                (Optional) size of an etcd cluster. Supported values are 1 or 3. Defaults to 1
    -t | --tls-enabled                 <is-tls-enabled>                      (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ['true' | 'false']. Defaults to 'false'
-   -i | --etcd-instance-name          <name of etcd instance>               (Required) name of the etcd instance.
+   -i | --etcd-instance-name          <name of etcd instance>               (Option) name of the etcd instance. Defaults to 'etcd-main'
    -e | --cert-expiry                 <certificate expiry>                  (Optional) common expiry for all certificates generated. Defaults to '12h'
    -m | --etcd-br-image               <image:tag of etcd-br container>      (Required) Image (with tag) for etcdbr container
    -w | --etcd-wrapper-image          <image:tag of etcd-wrapper container> (Optional) Image (with tag) for etcd-wrapper container
