@@ -37,7 +37,6 @@ function create_usage() {
    -e | --cert-expiry                 <certificate expiry>                  (Optional) common expiry for all certificates generated. Defaults to '12h'
    -m | --etcd-br-image               <image:tag of etcd-br container>      (Required) Image (with tag) for etcdbr container
    -w | --etcd-wrapper-image          <image:tag of etcd-wrapper container> (Optional) Image (with tag) for etcd-wrapper container
-   -p | --etcd-pvc-retain-policy      <pvc retain policy>                   (Optional) Possible values: 'Retain' | 'Delete'. Defaults to 'Retain'. If 'Delete' is set then it will also delete the PVC when statefulset is deleted
    -r | --skaffold-run-mode           <skaffold run or debug>               (Optional) Possible values: 'run' | 'debug'. Defaults to 'run'.
    -f | --force-create-pki-resources                                        (Optional) If specified then it will re-create all PKI resources.
    ")
@@ -109,10 +108,6 @@ function parse_flags() {
     --etcd-wrapper-image | -w)
       shift
       ETCD_WRAPPER_IMAGE="$1"
-      ;;
-    --etcd-pvc-retain-policy | -p)
-      shift
-      ETCD_PVC_RETAIN_POLICY="$1"
       ;;
     --skaffold-run-mode | -r)
       shift
