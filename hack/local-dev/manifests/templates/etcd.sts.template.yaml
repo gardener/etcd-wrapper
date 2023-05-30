@@ -23,7 +23,7 @@ spec:
       containers:
         - args:
             - start-etcd
-            - --backup-restore-tls-enabled=false
+            - --backup-restore-tls-enabled=${tls_enabled}
             #            - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
           image: ${etcd_wrapper_image} # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
@@ -47,8 +47,8 @@ spec:
             - --data-dir=/var/etcd/data/new.etcd
             - --restoration-temp-snapshots-dir=/var/etcd/restoration.temp
             - --embedded-etcd-quota-bytes=8589934592
-            - --endpoints=${scheme}://${etcd-name}-local:2379
-            - --service-endpoints=${scheme}://${etcd-name}-client:2379
+            - --endpoints=${scheme}://${etcd_name}-local:2379
+            - --service-endpoints=${scheme}://${etcd_name}-client:2379
             - --etcd-connection-timeout=5m
             - --delta-snapshot-period=1m0s
             - --delta-snapshot-memory-limit=104857600

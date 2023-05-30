@@ -178,7 +178,7 @@ function k8s::generate_statefulset() {
     scheme="https"
   fi
   echo "> Generating k8s manifest ${target_path}..."
-  export etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image etcd_pvc_retain_policy etcd_cm_name scheme
+  export etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image tls_enabled etcd_pvc_retain_policy etcd_cm_name scheme
   envsubst <"${template_path}" >"${target_path}"
   if [[ "${tls_enabled}" == "true" ]]; then
     # add TLS volume mounts to etcd-container
@@ -204,7 +204,6 @@ function k8s::generate_statefulset() {
     yq -i '.spec.template.spec.containers[1].command += "--server-key=/var/etcd/ssl/client/server/tls.key"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--cert=/var/etcd/ssl/client/client/tls.crt"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--key=/var/etcd/ssl/client/client/tls.key"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--cacert=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--insecure-skip-tls-verify=false"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--insecure-transport=false"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--cacert=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
@@ -212,11 +211,13 @@ function k8s::generate_statefulset() {
     yq -i '.spec.template.spec.volumes += {"name": "etcd-client-ca", "secret": {"defaultMode": 420, "secretName": "ca-etcd-bundle"}}' "${target_path}"
     etcd_client_server_secret_name="${etcd_name}-server" yq -i '.spec.template.spec.volumes += {"name": "etcd-client-server", "secret": {"defaultMode": 420, "secretName": env(etcd_client_server_secret_name)}}' "${target_path}"
     yq -i '.spec.template.spec.volumes += {"name": "etcd-client-client", "secret": {"defaultMode": 420, "secretName": "etcd-client"}}' "${target_path}"
+    # add TLS arguments to etcd-wrapper container arguments
+    yq -i 'spec.template.spec.containers[0].args += "-sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
   else
     yq -i '.spec.template.spec.containers[1].command += "--insecure-skip-tls-verify=true"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--insecure-transport=true"' "${target_path}"
   fi
-  unset etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image etcd_pvc_retain_policy etcd_cm_name scheme
+  unset etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image tls_enabled etcd_pvc_retain_policy etcd_cm_name scheme
 }
 
 function k8s::generate_etcd_configmap() {

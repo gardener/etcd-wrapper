@@ -33,7 +33,7 @@ function create_usage() {
    -n | --namespace                   <namespace>                           (Optional) kubernetes namespace where etcd resources will be created. if not specified uses 'default'
    -s | --cluster-size                <size of etcd cluster>                (Optional) size of an etcd cluster. Supported values are 1 or 3. Defaults to 1
    -t | --tls-enabled                 <is-tls-enabled>                      (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ['true' | 'false']. Defaults to 'false'
-   -i | --etcd-instance-name          <name of etcd client service>         (Optional) name of the etcd kubernetes client service. (Required) if TLS has been enabled
+   -i | --etcd-instance-name          <name of etcd instance>               (Required) name of the etcd instance.
    -e | --cert-expiry                 <certificate expiry>                  (Optional) common expiry for all certificates generated. Defaults to '12h'
    -m | --etcd-br-image               <image:tag of etcd-br container>      (Required) Image (with tag) for etcdbr container
    -w | --etcd-wrapper-image          <image:tag of etcd-wrapper container> (Optional) Image (with tag) for etcd-wrapper container
