@@ -117,10 +117,9 @@ function pki::generate_etcd_server_certificate_key_pair() {
 
   local namespace="$1"
   local etcd_name="$2"
-  local etcd_client_svc_name="${etcd_name}"-client
 
-  sans=$(pki::create_subject_alternate_names "${namespace}" "${etcd_client_svc_name}")
-  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-server-csr.json "${sans}"
+  sans_arr=$(pki::create_etcd_server_sans "${namespace}" "${etcd_name}")
+  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-server-csr.json "etcd-server" "${sans_arr[*]}"
   echo "> Generating ETCD server certificate and private key..."
   cfssl gencert \
     -ca "${SECRETS_DIR}"/ca.pem \
@@ -145,11 +144,10 @@ function pki::generate_etcd_peer_certificate_key_pair() {
 
   local namespace="$1"
   local etcd_name="$2"
-  local etcd_peer_svc_name="${etcd_name}"-peer
 
   local sans_arr
-  sans_arr=$(pki::create_subject_alternate_names "${namespace}" "${etcd_peer_svc_name}")
-  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-peer-csr.json "${sans_arr[@]}"
+  sans_arr=$(pki::create_etcd_peer_sans "${namespace}" "${etcd_name}")
+  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-peer-csr.json "etcd-server" "${sans_arr[@]}"
   echo "> Generating ETCD peer certificate and private key..."
   cfssl gencert \
     -ca "${SECRETS_DIR}"/peer-ca.pem \
@@ -160,7 +158,7 @@ function pki::generate_etcd_peer_certificate_key_pair() {
 }
 
 function pki::generate_etcd_client_certificate_key_pair() {
-  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-client-csr.json ""
+  pki::create_etcd_csr_config "${SECRET_REQUESTS_DIR}"/etcd-client-csr.json "etcd-client" ""
   echo "> Generating ETCD client certificate and private key..."
   cfssl gencert \
     -ca "${SECRETS_DIR}"/ca.pem \
@@ -173,17 +171,19 @@ function pki::generate_etcd_client_certificate_key_pair() {
 ##################################################################################################
 
 function pki::create_etcd_csr_config() {
-  if [[ $# -ne 2 ]]; then
-    echo -e "${FUNCNAME[0]} expects a target CSR file path and an array of subject alternate names."
+  if [[ $# -ne 3 ]]; then
+    echo -e "${FUNCNAME[0]} expects a target CSR file path, common name and an array of subject alternate names."
     exit 1
   fi
   local path="$1"
+  local common_name="$2"
+  shift
   shift
   local sans="$*"
   echo "writing ${path}"
   cat >"${path}" <<EOF
   {
-    "CN": "etcd",
+    "CN": "${common_name}",
     "hosts": [${sans}],
     "key": {
       "algo": "rsa",
@@ -202,33 +202,54 @@ function pki::create_etcd_csr_config() {
 EOF
 }
 
-function pki::create_subject_alternate_names() {
+function pki::create_etcd_server_sans() {
   if [[ $# -ne 2 ]]; then
-    echo -e "${FUNCNAME[0]} expects namespace and service name."
+    echo -e "${FUNCNAME[0]} expects namespace and etcd name"
     exit 1
   fi
 
   local namespace="$1"
-  local service_name="$2"
+  local etcd_name="$2"
   declare -a sans_arr
 
   # add host names which will be added as SAN to the certificate.
-  sans_arr+=("localhost")
-  sans_arr+=("127.0.0.1")
-  sans_arr+=($(printf "%s" "${service_name}"))
-  sans_arr+=($(printf "%s.%s" "${service_name}" "${namespace}"))
-  sans_arr+=($(printf "%s.%s.svc" "${service_name}" "${namespace}"))
-  sans_arr+=($(printf "%s.%s.svc.cluster.local" "${service_name}" "${namespace}"))
-  sans_arr+=(*.$(printf "%s" "${service_name}"))
-  sans_arr+=(*.$(printf "%s.%s" "${service_name}" "${namespace}"))
-  sans_arr+=(*.$(printf "%s.%s.svc" "${service_name}" "${namespace}"))
-  sans_arr+=(*.$(printf "%s.%s.svc.cluster.local" "${service_name}" "${namespace}"))
+  sans_arr+=($(printf "%s-local" "${etcd_name}"))
+  sans_arr+=($(printf "%s-client" "${etcd_name}"))
+  sans_arr+=($(printf "%s-client.%s" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "%s-client.%s.svc" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "%s-client.%s.svc.cluster.local" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "*.%s-peer" "${etcd_name}"))
+  sans_arr+=($(printf "*.%s-peer.%s" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "*.%s-peer.%s.svc" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "*.%s-peer.%s.svc.cluster.local" "${etcd_name}" "${namespace}"))
 
   joined_sans=$(printf ",\"%s\"" "${sans_arr[@]}")
   echo "${joined_sans:1}"
 }
 
+function pki::create_etcd_peer_sans() {
+  if [[ $# -ne 2 ]]; then
+    echo -e "${FUNCNAME[0]} expects namespace and etcd name"
+    exit 1
+  fi
 
+  local namespace="$1"
+  local etcd_name="$2"
+  declare -a sans_arr
+
+  # add host names which will be added as SAN to the certificate.
+  sans_arr+=($(printf "%s-peer" "${etcd_name}"))
+  sans_arr+=($(printf "%s-peer.%s" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "%s-peer.%s.svc" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "%s-peer.%s.svc.cluster.local" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "*.%s-peer" "${etcd_name}"))
+  sans_arr+=($(printf "*.%s-peer.%s" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "*.%s-peer.%s.svc" "${etcd_name}" "${namespace}"))
+  sans_arr+=($(printf "*.%s-peer.%s.svc.cluster.local" "${etcd_name}" "${namespace}"))
+
+  joined_sans=$(printf ",\"%s\"" "${sans_arr[@]}")
+  echo "${joined_sans:1}"
+}
 
 function pki::main() {
   if [[ $# -ne 3 ]]; then

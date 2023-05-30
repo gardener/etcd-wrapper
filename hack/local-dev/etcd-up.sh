@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 # TARGET_NAMESPACE is the target namespace where the resources will be setup. If not specified then it assumes 'default' namespace is the target namespace where the resources will be setup. If not specified then it assumes 'default' namespace.
-TARGET_NAMESPACE=""
+TARGET_NAMESPACE="default"
 # TLS_ENABLED possible values 'true' and 'false' (default). If its value is true then TLS resources will be generated and all communication will be TLS enabled.
 TLS_ENABLED="false" #
 ETCD_CLUSTER_SIZE=1
