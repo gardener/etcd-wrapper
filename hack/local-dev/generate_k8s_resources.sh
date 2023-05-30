@@ -13,9 +13,9 @@ declare -a TEMPLATE_PREREQ_RESOURCE_ARR
 
 function k8s::initialize_resource_array() {
   TEMPLATE_PREREQ_RESOURCE_ARR+=("etcd.sa.template.yaml,etcd.sa.yaml,common")
-  TEMPLATE_PREREQ_RESOURCE_ARR+=("backuprestore.role.rolebinding.template.yaml,backuprestore.role.rolebinding.yaml,common")
-  TEMPLATE_PREREQ_RESOURCE_ARR+=("etcd.client.svc.template.yaml,etcd.client.svc.yaml,common")
-  TEMPLATE_PREREQ_RESOURCE_ARR+=("etcd.peer.svc.template.yaml,etcd.peer.svc.yaml,multinode")
+  TEMPLATE_PREREQ_RESOURCE_ARR+=("backuprestore.role.rolebinding.template.yaml,backuprestore-role.rolebinding.yaml,common")
+  TEMPLATE_PREREQ_RESOURCE_ARR+=("etcd.client.svc.template.yaml,etcd-client.svc.yaml,common")
+  TEMPLATE_PREREQ_RESOURCE_ARR+=("etcd.peer.svc.template.yaml,etcd-peer.svc.yaml,multinode")
 }
 
 function k8s::check_prerequisites() {
@@ -26,6 +26,10 @@ function k8s::check_prerequisites() {
   fi
   if ! command -v yq &>/dev/null; then
     echo -e "yq is not installed. Please install, refer: https://github.com/mikefarah/yq#install"
+    exit 1
+  fi
+  if ! command -v kubectl &>/dev/null; then
+    echo -e "kubectl is not installed. Please install, refer: https://kubernetes.io/docs/tasks/tools/"
     exit 1
   fi
 }
@@ -152,8 +156,8 @@ function k8s::substitute_name_and_generate_resources() {
 }
 
 function k8s::generate_statefulset() {
-  if [[ $# -ne 6 ]]; then
-    echo -e "${FUNCNAME[0]} expects six arguments - etcd name, etcd cluster size, etcd cluster type, tls-enabled, etcd-br image, etcd-pvc retain policy"
+  if [[ $# -ne 7 ]]; then
+    echo -e "${FUNCNAME[0]} expects seven arguments - etcd name, etcd cluster size, etcd cluster type, tls-enabled, etcd-wrapper image, etcd-br image, etcd-pvc retain policy"
     exit 1
   fi
 
@@ -161,19 +165,20 @@ function k8s::generate_statefulset() {
   local etcd_cluster_size=$2
   local etcd_cluster_type="$3"
   local tls_enabled="$4"
-  local etcd_br_image="$5"
-  local etcd_pvc_retain_policy="$6"
+  local etcd_wrapper_image="$5"
+  local etcd_br_image="$6"
+  local etcd_pvc_retain_policy="$7"
 
   local template_path target_path etcd_cm_name scheme
   etcd_cm_name="${etcd_name}${ETCD_CONFIGMAP_SUFFIX}"
   template_path="${MANIFEST_DIR}"/templates/etcd.sts.template.yaml
-  target_path="${MANIFEST_DIR}/${etcd_cluster_type}"/etcd-sts.yaml
+  target_path="${MANIFEST_DIR}/${etcd_cluster_type}"/etcd.sts.yaml
   scheme="http"
   if [[ "${tls_enabled}" == "true" ]]; then
     scheme="https"
   fi
   echo "> Generating k8s manifest ${target_path}..."
-  export etcd_name etcd_cluster_size etcd_br_image etcd_pvc_retain_policy etcd_cm_name scheme
+  export etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image etcd_pvc_retain_policy etcd_cm_name scheme
   envsubst <"${template_path}" >"${target_path}"
   if [[ "${tls_enabled}" == "true" ]]; then
     # add TLS volume mounts to etcd-container
@@ -211,7 +216,7 @@ function k8s::generate_statefulset() {
     yq -i '.spec.template.spec.containers[1].command += "--insecure-skip-tls-verify=true"' "${target_path}"
     yq -i '.spec.template.spec.containers[1].command += "--insecure-transport=true"' "${target_path}"
   fi
-  unset etcd_name etcd_cluster_size etcd_br_image etcd_pvc_retain_policy etcd_cm_name scheme
+  unset etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image etcd_pvc_retain_policy etcd_cm_name scheme
 }
 
 function k8s::generate_etcd_configmap() {
@@ -222,7 +227,7 @@ function k8s::generate_etcd_configmap() {
   local etcd_name="$1"
   local target_dir="$2"
   local etcd_configmap_name="${etcd_name}${ETCD_CONFIGMAP_SUFFIX}"
-  local etcd_config_path="${CONFIG_DIR}"/etcd.config.yaml
+  local etcd_config_path="${CONFIG_DIR}"/etcd.conf.yaml
   local etcd_configmap_path="${target_dir}/${etcd_configmap_name}".cm.yaml
 
   echo "> Generating k8s manifest ${etcd_configmap_path}..."
@@ -260,16 +265,17 @@ function k8s::base64_encode() {
 
 function k8s::main() {
 
-  if [[ $# -ne 5 ]]; then
-    echo -e "${FUNCNAME[0]} expects 5 arguments - etcd name, etcd cluster size, tls enabled, etcdbr image, etcd pvc retain policy"
+  if [[ $# -ne 6 ]]; then
+    echo -e "${FUNCNAME[0]} expects 5 arguments - etcd name, etcd cluster size, tls enabled, etcd wrapper image, etcd-br image, etcd pvc retain policy"
     exit 1
   fi
 
   local etcd_name="$1"
   local etcd_cluster_size=$2
   local tls_enabled="$3"
-  local etcd_br_image="$4"
-  local etcd_pvc_retain_policy="$5"
+  local etcd_wrapper_image="$4"
+  local etcd_br_image="$5"
+  local etcd_pvc_retain_policy="$6"
 
   echo "${FUNCNAME[0]} called with arguments: etcd_name=$etcd_name, etcd_cluster_size=$etcd_cluster_size, tls_enabled=$tls_enabled, etcd_br_image=$etcd_br_image, etcd_pvc_retain_policy=$etcd_pvc_retain_policy"
 
@@ -290,7 +296,7 @@ function k8s::main() {
   k8s::substitute_name_and_generate_resources "${etcd_name}" "${etcd_cluster_type}"
   k8s::generate_lease "${etcd_name}" "${etcd_cluster_size}" "${etcd_cluster_type}"
   k8s::generate_etcd_configmap "${etcd_name}" "${MANIFEST_DIR}/${etcd_cluster_type}"
-  k8s::generate_statefulset "${etcd_name}" "${etcd_cluster_size}" "${etcd_cluster_type}" "${tls_enabled}" "${etcd_br_image}" "${etcd_pvc_retain_policy}"
+  k8s::generate_statefulset "${etcd_name}" "${etcd_cluster_size}" "${etcd_cluster_type}" "${tls_enabled}" "${etcd_wrapper_image}" "${etcd_br_image}" "${etcd_pvc_retain_policy}"
 }
 
 #k8s::main "$@"

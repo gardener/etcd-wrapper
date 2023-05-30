@@ -12,8 +12,10 @@ ETCD_CLUSTER_SIZE=1
 ETCD_INSTANCE_NAME=""
 CERT_EXPIRY="12h"
 FORCE_CREATE_PKI_RESOURCES="false"
-ETCD_BR_IMAGE="etcd-wrapper-image:dev"
+ETCD_BR_IMAGE=""
+ETCD_WRAPPER_IMAGE="etcd-wrapper"
 ETCD_PVC_RETAIN_POLICY="Retain"
+SKAFFOLD_RUN_MODE="run"
 
 declare -a PKI_RESOURCES
 
@@ -28,14 +30,16 @@ function create_usage() {
   usage=$(printf '%s\n' "
   usage: $(basename $0) [Options]
   Options:
-   -n | --namespace                   <namespace>                       (Optional) kubernetes namespace where etcd resources will be created. if not specified uses 'default'
-   -s | --cluster-size                <size of etcd cluster>            (Optional) size of an etcd cluster. Supported values are 1 or 3. Defaults to 1
-   -t | --tls-enabled                 <is-tls-enabled>                  (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ['true' | 'false']. Defaults to 'false'
-   -i | --etcd-instance-name          <name of etcd client service>     (Optional) name of the etcd kubernetes client service. (Required) if TLS has been enabled
-   -e | --cert-expiry                 <certificate expiry>              (Optional) common expiry for all certificates generated. Defaults to '12h'
-   -m | --etcd-br-image               <image:tag of etcd-br container>  (Optional) Image (with tag) for etcdbr container
-   -p | --etcd-pvc-retain-policy      <pvc retain policy>               (Optional) Possible values: 'Retain' | 'Delete'. Defaults to 'Retain'. If 'Delete' is set then it will also delete the PVC when statefulset is deleted
-   -f | --force-create-pki-resources                                    (Optional) If specified then it will re-create all PKI resources.
+   -n | --namespace                   <namespace>                           (Optional) kubernetes namespace where etcd resources will be created. if not specified uses 'default'
+   -s | --cluster-size                <size of etcd cluster>                (Optional) size of an etcd cluster. Supported values are 1 or 3. Defaults to 1
+   -t | --tls-enabled                 <is-tls-enabled>                      (Optional) controls the TLS communication amongst peers and between etcd and its client.Possible values: ['true' | 'false']. Defaults to 'false'
+   -i | --etcd-instance-name          <name of etcd client service>         (Optional) name of the etcd kubernetes client service. (Required) if TLS has been enabled
+   -e | --cert-expiry                 <certificate expiry>                  (Optional) common expiry for all certificates generated. Defaults to '12h'
+   -m | --etcd-br-image               <image:tag of etcd-br container>      (Required) Image (with tag) for etcdbr container
+   -w | --etcd-wrapper-image          <image:tag of etcd-wrapper container> (Optional) Image (with tag) for etcd-wrapper container
+   -p | --etcd-pvc-retain-policy      <pvc retain policy>                   (Optional) Possible values: 'Retain' | 'Delete'. Defaults to 'Retain'. If 'Delete' is set then it will also delete the PVC when statefulset is deleted
+   -r | --skaffold-run-mode           <skaffold run or debug>               (Optional) Possible values: 'run' | 'debug'. Defaults to 'run'.
+   -f | --force-create-pki-resources                                        (Optional) If specified then it will re-create all PKI resources.
    ")
   echo "${usage}"
 }
@@ -102,9 +106,17 @@ function parse_flags() {
       shift
       ETCD_BR_IMAGE="$1"
       ;;
+    --etcd-wrapper-image | -w)
+      shift
+      ETCD_WRAPPER_IMAGE="$1"
+      ;;
     --etcd-pvc-retain-policy | -p)
       shift
       ETCD_PVC_RETAIN_POLICY="$1"
+      ;;
+    --skaffold-run-mode | -r)
+      shift
+      SKAFFOLD_RUN_MODE="$1"
       ;;
     --help | -h)
       shift
@@ -119,6 +131,10 @@ function parse_flags() {
 function validate_args() {
   if [[ -z "${ETCD_INSTANCE_NAME}" ]]; then
     echo -e "ETCD instance name has not been set."
+    exit 1
+  fi
+  if [[ -z "${ETCD_BR_IMAGE}" ]]; then
+    echo -e "etcd-br-image is not set."
     exit 1
   fi
 }
@@ -143,7 +159,7 @@ function create_pki_resources() {
   # check if all PKI resources are existing. Even if one is missing then we recreate all or if FORCE_CREATE_PKI_RESOURCES=true.
   if [[ "${TLS_ENABLED}" == "true" ]]; then
     initialize_pki_resources_arr
-    local all_resources_exist target_manifest_dir
+    local all_resources_exist
     all_resources_exist=$(all_pki_resources_exist)
     if [[ "${FORCE_CREATE_PKI_RESOURCES}" == "true" || "${all_resources_exist}" == "false" ]]; then
       pki::check_prerequisites
@@ -156,7 +172,7 @@ function create_pki_resources() {
 
 function create_k8s_resources() {
   k8s::check_prerequisites
-  k8s::main "${ETCD_INSTANCE_NAME}" "${ETCD_CLUSTER_SIZE}" "${TLS_ENABLED}" "${ETCD_BR_IMAGE}" "${ETCD_PVC_RETAIN_POLICY}"
+  k8s::main "${ETCD_INSTANCE_NAME}" "${ETCD_CLUSTER_SIZE}" "${TLS_ENABLED}" "${ETCD_WRAPPER_IMAGE}" "${ETCD_BR_IMAGE}" "${ETCD_PVC_RETAIN_POLICY}"
 }
 
 function all_pki_resources_exist() {
@@ -190,7 +206,7 @@ function create_etcd_config() {
 
   echo "> Creating etcd configuration at ${SCRIPT_DIR}/config/etcd.config.yaml..."
   export etcd_namespace etcd_peer_service_name scheme etcd_initial_cluster
-  envsubst <"${SCRIPT_DIR}"/config/etcd.config.template.yaml >"${SCRIPT_DIR}"/config/etcd.config.yaml
+  envsubst <"${SCRIPT_DIR}"/config/etcd.config.template.yaml >"${SCRIPT_DIR}"/config/etcd.conf.yaml
   unset etcd_namespace etcd_peer_service_name scheme etcd_initial_cluster
 
   if [[ "${TLS_ENABLED}" == "true" ]]; then
@@ -200,7 +216,7 @@ function create_etcd_config() {
        | (.client-transport-security.client-cert-auth = true)
        | (.client-transport-security.trusted-ca-file = "/var/etcd/ssl/client/ca/bundle.crt")
        | (.client-transport-security.auto-tls = false)' \
-      "${SCRIPT_DIR}"/config/etcd.config.yaml
+      "${SCRIPT_DIR}"/config/etcd.conf.yaml
   fi
 }
 
@@ -215,7 +231,7 @@ metadata:
 build:
   local: {}
   artifacts:
-    - image: etcd-wrapper-image
+    - image: "${ETCD_WRAPPER_IMAGE}"
       ko:
         dependencies:
           paths:
@@ -228,9 +244,9 @@ build:
           - -v
 manifests:
   rawYaml:
-    - hack/local-dev/manifests/common/backuprestore.role.rolebinding.yaml
-    - hack/local-dev/manifests/common/etcd-sa.yaml
-    - hack/local-dev/manifests/common/etcd.client.svc.yaml
+    - hack/local-dev/manifests/common/backuprestore-role.rolebinding.yaml
+    - hack/local-dev/manifests/common/etcd.sa.yaml
+    - hack/local-dev/manifests/common/etcd-client.svc.yaml
 EOF
   if [[ "${TLS_ENABLED}" == "true" ]]; then
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/common/ca-etcd-bundle.secret.yaml"' "${target_path}"
@@ -241,12 +257,12 @@ EOF
   fi
   if [[ "${ETCD_CLUSTER_SIZE}" -gt 1 ]]; then
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/lease.yaml"' "${target_path}"
-    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-sts.yaml"' "${target_path}"
+    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd.sts.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-main-bootstrap.cm.yaml"' "${target_path}"
-    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd.peer.svc.yaml"' "${target_path}"
+    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-peer.svc.yaml"' "${target_path}"
   else
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/lease.yaml"' "${target_path}"
-    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/etcd-sts.yaml"' "${target_path}"
+    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/etcd.sts.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/etcd-main-bootstrap.cm.yaml"' "${target_path}"
   fi
 }
@@ -262,8 +278,8 @@ function main() {
   create_etcd_config
   create_k8s_resources
   generate_skaffold_yaml
-  # creates an etcd cluster (single or multi-node)
-  #create_etcd_cluster
+  skaffold "${SKAFFOLD_RUN_MODE}" -n "${TARGET_NAMESPACE}"
+  echo "> Successfully create etcd resource in namespace: ${TARGET_NAMESPACE}"
 }
 
 USAGE=$(create_usage)

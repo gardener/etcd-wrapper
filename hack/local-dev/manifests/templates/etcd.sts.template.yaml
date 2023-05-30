@@ -25,7 +25,7 @@ spec:
             - start-etcd
             - --backup-restore-tls-enabled=false
             #            - --sidecar-ca-cert-bundle-path=/var/etcd/ssl/client/ca/ca.crt # to be used only when TLS is desired
-          image: ${etcd_br_image} # change this to where you have hosted the docker image for etcd-wrapper.
+          image: ${etcd_wrapper_image} # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
           name: etcd
           ports:
@@ -37,7 +37,7 @@ spec:
               protocol: TCP
           volumeMounts:
             - mountPath: /var/etcd/data/
-              name: etcd-test
+              name: ${etcd_name}
         - command:
             - etcdbrctl
             - server
