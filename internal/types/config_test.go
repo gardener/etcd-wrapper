@@ -50,6 +50,7 @@ func TestValidate(t *testing.T) {
 		expectedError    bool
 	}{
 		{"missing host should result in error", false, "2379", nil, true},
+		{"missing host and port should result in error", false, "", nil, true},
 		{"missing port should result in error", false, "localhost", nil, true},
 		{"should allow empty host", false, ":2379", nil, false},
 		{"should disallow specifying scheme", false, "http://localhost:2379", nil, true},
@@ -63,6 +64,24 @@ func TestValidate(t *testing.T) {
 		c.CaCertBundlePath = entry.caCertBundlePath
 		err := c.Validate()
 		g.Expect(err != nil).To(Equal(entry.expectedError))
+	}
+}
+
+func TestGetHost(t *testing.T) {
+	table := []struct {
+		description  string
+		hostPort     string
+		expectedHost string
+	}{
+		{"empty host should return localhost", ":2379", "localhost"},
+		{"host with only spaces should return localhost", "  :2379", "localhost"},
+		{"non-empty host should return the same", "etcd-main-local:2379", "etcd-main-local"},
+	}
+	for _, entry := range table {
+		g := NewWithT(t)
+		t.Log(entry.description)
+		c := createSidecarConfig(false, entry.hostPort)
+		g.Expect(c.GetHost()).To(Equal(entry.expectedHost))
 	}
 }
 

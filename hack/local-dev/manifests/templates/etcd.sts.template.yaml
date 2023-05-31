@@ -24,6 +24,7 @@ spec:
         - args:
             - start-etcd
             - --backup-restore-tls-enabled=${tls_enabled}
+            - --backup-restore-host-port=${etcd_name}-local:8080
           image: ${etcd_wrapper_image} # change this to where you have hosted the docker image for etcd-wrapper.
           imagePullPolicy: IfNotPresent
           name: etcd

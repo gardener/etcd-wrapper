@@ -199,7 +199,8 @@ func createTLSConfig(brConfig types.BackupRestoreConfig) (*tls.Config, error) {
 			return nil, err
 		}
 		return &tls.Config{
-			RootCAs: caCertPool,
+			RootCAs:    caCertPool,
+			ServerName: brConfig.GetHost(),
 		}, nil
 	}
 

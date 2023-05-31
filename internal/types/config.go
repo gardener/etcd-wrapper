@@ -51,3 +51,13 @@ func (c *BackupRestoreConfig) Validate() (err error) {
 func (c *BackupRestoreConfig) GetBaseAddress() string {
 	return util.ConstructBaseAddress(c.TLSEnabled, c.HostPort)
 }
+
+// GetHost extracts the backup-restore server host from host-port string.
+func (c *BackupRestoreConfig) GetHost() string {
+	host := "localhost"
+	splits := strings.Split(c.HostPort, ":")
+	if len(strings.TrimSpace(splits[0])) > 0 {
+		host = splits[0]
+	}
+	return host
+}
