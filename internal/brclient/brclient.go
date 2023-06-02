@@ -16,11 +16,11 @@ package brclient
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/types"
@@ -40,9 +40,6 @@ const (
 	// Successful indicates that the initialisation by backup-restore is successful.
 	Successful
 )
-
-// DefaultEtcdConfigFilePath defines the default file path for the etcd configuration file
-const DefaultEtcdConfigFilePath = "/etc/etcd.conf.yaml"
 
 //go:generate stringer -type=InitStatus
 
@@ -77,20 +74,26 @@ type brClient struct {
 
 // NewDefaultClient creates a BackupRestoreClient using the BackupRestoreConfig and etcd configuration at etcdConfigPath.
 // It delegates the responsibility to NewClient by passing in a default implementation of HttpClientCreator.
-func NewDefaultClient(brConfig types.BackupRestoreConfig, etcdConfigPath string) (BackupRestoreClient, error) {
+func NewDefaultClient(brConfig types.BackupRestoreConfig) (BackupRestoreClient, error) {
 	client, err := createClient(brConfig)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(client, brConfig.GetBaseAddress(), etcdConfigPath), nil
+	userHomeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	defaultEtcdConfigFilePath := filepath.Join(userHomeDir, "etcd.conf.yaml")
+	return NewClient(client, brConfig.GetBaseAddress(), defaultEtcdConfigFilePath), nil
 }
 
 // NewClient creates and returns a new BackupRestoreClient object
-func NewClient(httpClient *http.Client, backupRestoreBaseAddress string, etcdConfigFilePath string) BackupRestoreClient {
+func NewClient(httpClient *http.Client, backupRestoreBaseAddress, etcdConfigFilePath string) BackupRestoreClient {
 	return &brClient{
 		client:                   httpClient,
 		backupRestoreBaseAddress: backupRestoreBaseAddress,
-		etcdConfigFilePath:       etcdConfigFilePath}
+		etcdConfigFilePath:       etcdConfigFilePath,
+	}
 }
 
 func (c *brClient) GetInitializationStatus(ctx context.Context) (InitStatus, error) {
@@ -137,6 +140,7 @@ func (c *brClient) TriggerInitialization(ctx context.Context, validationType Val
 }
 
 func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
+	// TODO (@aaronfern) If and when we directly mount etcd configuration to etcd-wrapper then we need to remove this and also add a command line parameter to take the path to the configuration.
 	response, err := c.createAndExecuteHTTPRequest(ctx, http.MethodGet, c.backupRestoreBaseAddress+"/config")
 	if err != nil {
 		return "", err
@@ -178,7 +182,7 @@ func (c *brClient) createAndExecuteHTTPRequest(ctx context.Context, method, url 
 }
 
 func createClient(brConfig types.BackupRestoreConfig) (*http.Client, error) {
-	tlsConfig, err := createTLSConfig(brConfig)
+	tlsConfig, err := util.CreateTLSConfig(func() bool { return brConfig.TLSEnabled }, brConfig.GetHost(), brConfig.CaCertBundlePath, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -190,21 +194,4 @@ func createClient(brConfig types.BackupRestoreConfig) (*http.Client, error) {
 		Timeout:   httpClientRequestTimeout,
 	}
 	return client, nil
-}
-
-func createTLSConfig(brConfig types.BackupRestoreConfig) (*tls.Config, error) {
-	if brConfig.TLSEnabled {
-		caCertPool, err := util.CreateCACertPool(*brConfig.CaCertBundlePath)
-		if err != nil {
-			return nil, err
-		}
-		return &tls.Config{
-			RootCAs: caCertPool,
-		}, nil
-	}
-
-	// If TLS is not enabled then create an insecure TLS config
-	return &tls.Config{
-		InsecureSkipVerify: true,
-	}, nil
 }

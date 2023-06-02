@@ -3,7 +3,6 @@ automountServiceAccountToken: true
 kind: ServiceAccount
 metadata:
   labels:
-    instance: etcd-test
+    instance: ${etcd_name}
     name: etcd
-  name: etcd-test
-  namespace: default
+  name: ${etcd_name}

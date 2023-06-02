@@ -17,6 +17,7 @@ package brclient
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -24,8 +25,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gardener/etcd-wrapper/internal/testutil"
 	"github.com/gardener/etcd-wrapper/internal/types"
-
 	. "github.com/onsi/gomega"
 )
 
@@ -33,6 +34,12 @@ var (
 	testdataPath       = "../testdata"
 	etcdCACertFilePath = filepath.Join(testdataPath, "ca.pem")
 )
+
+type TestRoundTripper func(req *http.Request) *http.Response
+
+func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req), nil
+}
 
 func TestSuite(t *testing.T) {
 	allTests := []struct {
@@ -43,8 +50,13 @@ func TestSuite(t *testing.T) {
 		{"getInitializationStatus", testGetInitializationStatus},
 		{"triggerInitializer", testTriggerInitialization},
 		{"createClient", testCreateSidecarClient},
-		{"createTLSConfig", testCreateTLSConfig},
 	}
+
+	g := NewWithT(t)
+	defer func() {
+		g.Expect(os.RemoveAll(testdataPath)).To(BeNil())
+	}()
+	createTLSResources(g)
 
 	for _, entry := range allTests {
 		t.Run(entry.name, func(t *testing.T) {
@@ -55,27 +67,6 @@ func TestSuite(t *testing.T) {
 	}
 }
 
-func createEtcdConfigTempFile(t *testing.T) string {
-	g := NewWithT(t)
-	etcdConfigFile, err := os.CreateTemp("", "etcd-config.*.yaml")
-	g.Expect(err).To(BeNil())
-	return etcdConfigFile.Name()
-}
-
-func deleteEtcdConfigTempFile(t *testing.T, etcdConfigFilePath string) {
-	g := NewWithT(t)
-	if _, err := os.Stat(etcdConfigFilePath); err == nil {
-		err = os.Remove(etcdConfigFilePath)
-		g.Expect(err).To(BeNil())
-	}
-}
-
-type TestRoundTripper func(req *http.Request) *http.Response
-
-func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f(req), nil
-}
-
 func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 	table := []struct {
 		description             string
@@ -84,12 +75,12 @@ func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 		validSidecarBaseAddress bool
 		expectError             bool
 	}{
-		{"test: 200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), true, false},
-		{"test: 202 response code should return a valid etcd config", http.StatusAccepted, []byte("give me a valid etcd config"), true, false},
-		{"test: 201 response code should return a valid etcd config", http.StatusCreated, []byte("give me a valid etcd config"), true, false},
-		{"test: 208 response code should return an error", http.StatusAlreadyReported, []byte("give me a valid etcd config"), true, true},
-		{"test: 400 response code should return an error", http.StatusBadRequest, []byte("give me a valid etcd config"), true, true},
-		{"test: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
+		{"testutil: 200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), true, false},
+		{"testutil: 202 response code should return a valid etcd config", http.StatusAccepted, []byte("give me a valid etcd config"), true, false},
+		{"testutil: 201 response code should return a valid etcd config", http.StatusCreated, []byte("give me a valid etcd config"), true, false},
+		{"testutil: 208 response code should return an error", http.StatusAlreadyReported, []byte("give me a valid etcd config"), true, true},
+		{"testutil: 400 response code should return an error", http.StatusBadRequest, []byte("give me a valid etcd config"), true, true},
+		{"testutil: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
 	}
 
 	g := NewWithT(t)
@@ -124,12 +115,12 @@ func testGetInitializationStatus(t *testing.T, etcdConfigFilePath string) {
 		expectError             bool
 		expectedStatus          InitStatus
 	}{
-		{"test: `New` initialization status returned by server should result in `New`", http.StatusOK, []byte(New.String()), true, false, New},
-		{"test: `InProgress` initialization status returned by server should result in `InProgress`", http.StatusOK, []byte(InProgress.String()), true, false, InProgress},
-		{"test: `Successful` initialization status returned by server should result in  Successful", http.StatusOK, []byte(Successful.String()), true, false, Successful},
-		{"test: Unknown initialization status returned by server should result in `InProgress`", http.StatusOK, []byte("error response"), true, false, InProgress},
-		{"test: bad response from server should result in `Unknown`", http.StatusBadRequest, []byte("error response"), true, true, Unknown},
-		{"test: when sidecar base address is invalid should return an error and result in `Unknown`", http.StatusBadRequest, []byte("error response"), false, true, Unknown},
+		{"test: New initialization status returned by server should result in New", http.StatusOK, []byte(New.String()), true, false, New},
+		{"test: InProgress initialization status returned by server should result in InProgress", http.StatusOK, []byte(InProgress.String()), true, false, InProgress},
+		{"test: Successful initialization status returned by server should result in Successful", http.StatusOK, []byte(Successful.String()), true, false, Successful},
+		{"test: Unknown initialization status returned by server should result in InProgress", http.StatusOK, []byte("error response"), true, false, InProgress},
+		{"test: Bad response from server should result in Unknown", http.StatusBadRequest, []byte("error response"), true, true, Unknown},
+		{"test: When sidecar base address is invalid should return an error and result in Unknown", http.StatusBadRequest, []byte("error response"), false, true, Unknown},
 	}
 
 	g := NewWithT(t)
@@ -158,9 +149,9 @@ func testTriggerInitialization(t *testing.T, etcdConfigFilePath string) {
 		validSidecarBaseAddress bool
 		expectError             bool
 	}{
-		{"test: server returning a valid response should not result in an error", http.StatusOK, []byte("valid server response"), true, false},
-		{"test: server returning an error code should result in an error", http.StatusBadRequest, []byte("invalid server response"), true, true},
-		{"test: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
+		{"testutil: server returning a valid response should not result in an error", http.StatusOK, []byte("valid server response"), true, false},
+		{"testutil: server returning an error code should result in an error", http.StatusBadRequest, []byte("invalid server response"), true, true},
+		{"testutil: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
 	}
 
 	for _, entry := range table {
@@ -187,33 +178,13 @@ func testCreateSidecarClient(t *testing.T, _ string) {
 		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"test: return error when incorrect sidecar config (CA filepath) is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-		{"test: return etcd client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
+		{"testutil: return error when incorrect sidecar config (CA filepath) is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: incorrectCAFilePath}, true},
+		{"testutil: return etcd client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
 	for _, entry := range table {
 		t.Log(entry.description)
 		_, err := createClient(entry.sidecarConfig)
-		g.Expect(err != nil).To(Equal(entry.expectError))
-	}
-}
-
-func testCreateTLSConfig(t *testing.T, _ string) {
-	incorrectCAFilePath := testdataPath + "/wrong-path"
-	table := []struct {
-		description   string
-		sidecarConfig types.BackupRestoreConfig
-		expectError   bool
-	}{
-		{"test: return valid insecure TLS config when sidecar config does not have TLS enabled", types.BackupRestoreConfig{TLSEnabled: false}, false},
-		{"test: return valid TLS config when sidecar config has TLS enabled and valid CA file path", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
-		{"test: return error when sidecar config has TLS enabled and invalid CA file path", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-	}
-
-	g := NewWithT(t)
-	for _, entry := range table {
-		t.Log(entry.description)
-		_, err := createTLSConfig(entry.sidecarConfig)
 		g.Expect(err != nil).To(Equal(entry.expectError))
 	}
 }
@@ -225,13 +196,18 @@ func TestNewDefaultClient(t *testing.T) {
 		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"test: return error when incorrect sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &incorrectCAFilePath}, true},
-		{"test: return backuprestore client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: &etcdCACertFilePath}, false},
+		{"testutil: return error when incorrect sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: incorrectCAFilePath}, true},
+		{"testutil: return backuprestore client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
+	defer func() {
+		g.Expect(os.RemoveAll(testdataPath)).To(BeNil())
+	}()
+	createTLSResources(g)
+
 	for _, entry := range table {
 		t.Log(entry.description)
-		_, err := NewDefaultClient(entry.sidecarConfig, DefaultEtcdConfigFilePath)
+		_, err := NewDefaultClient(entry.sidecarConfig)
 		g.Expect(err != nil).To(Equal(entry.expectError))
 	}
 }
@@ -251,4 +227,36 @@ func getTestHttpClient(responseCode int, responseBody []byte) *http.Client {
 		}),
 		Timeout: 5 * time.Second,
 	}
+}
+
+func createEtcdConfigTempFile(t *testing.T) string {
+	g := NewWithT(t)
+	etcdConfigFile, err := os.CreateTemp("", "etcd-config.*.yaml")
+	g.Expect(err).To(BeNil())
+	return etcdConfigFile.Name()
+}
+
+func deleteEtcdConfigTempFile(t *testing.T, etcdConfigFilePath string) {
+	g := NewWithT(t)
+	if _, err := os.Stat(etcdConfigFilePath); err == nil {
+		err = os.Remove(etcdConfigFilePath)
+		g.Expect(err).To(BeNil())
+	}
+}
+
+func createTLSResources(g *WithT) {
+	var (
+		err           error
+		caCertKeyPair *testutil.CertKeyPair
+		tlsResCreator *testutil.TLSResourceCreator
+	)
+	if _, err = os.Stat(testdataPath); errors.Is(err, os.ErrNotExist) {
+		g.Expect(os.Mkdir(testdataPath, os.ModeDir|os.ModePerm)).To(Succeed())
+	}
+	tlsResCreator, err = testutil.NewTLSResourceCreator()
+	g.Expect(err).To(BeNil())
+	// create and write CA certificate and private key
+	caCertKeyPair, err = tlsResCreator.CreateCACertAndKey()
+	g.Expect(err).To(BeNil())
+	g.Expect(caCertKeyPair.EncodeAndWrite(testdataPath, "ca.pem", "ca-key.pem")).To(Succeed())
 }

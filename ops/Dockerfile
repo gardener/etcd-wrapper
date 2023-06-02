@@ -11,9 +11,12 @@ FROM source-$TARGETARCH as source
 FROM alpine:3.15.6
 
 WORKDIR /
-
-RUN apk add --update bash curl
+RUN apk update \
+    && apk --no-cache add \
+    bash \
+    curl \
+    vim
 
 COPY --from=source /usr/local/bin/etcdctl /usr/local/bin
 
-ENTRYPOINT ["/bin/sh"]
+ENTRYPOINT ["/bin/bash"]

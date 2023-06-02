@@ -1,0 +1,42 @@
+# Human-readable name for this member.
+name: etcd-0ef247
+# Path to the data directory.
+data-dir: /var/etcd/data/new.etcd
+# metrics configuration
+metrics: extensive
+# Number of committed transactions to trigger a snapshot to disk.
+snapshot-count: 75000
+
+# Accept etcd V2 client requests
+enable-v2: false
+# Raise alarms when backend size exceeds the given quota. 0 means use the
+# default quota.
+quota-backend-bytes: 8589934592
+
+# List of comma separated URLs to listen on for client traffic.
+listen-client-urls: ${scheme}://0.0.0.0:2379
+
+# List of this member's client URLs to advertise to the public.
+# The URLs needed to be a comma-separated list.
+advertise-client-urls: ${scheme}@${etcd_peer_service_name}@${etcd_namespace}@2379
+
+# List of comma separated URLs to listen on for peer traffic.
+listen-peer-urls: ${peer_url_scheme}://0.0.0.0:2380
+
+# List of this member's peer URLs to advertise to the public.
+# The URLs needed to be a comma-separated list.
+initial-advertise-peer-urls: ${peer_url_scheme}@${etcd_peer_service_name}@${etcd_namespace}@2380
+
+# Initial cluster token for the etcd cluster during bootstrap.
+initial-cluster-token: etcd-cluster
+
+# Initial cluster state ('new' or 'existing').
+initial-cluster-state: new
+
+# Initial cluster
+initial-cluster: ${etcd_initial_cluster}
+
+# auto-compaction-mode ("periodic" or "revision").
+auto-compaction-mode: periodic
+# auto-compaction-retention defines Auto compaction retention length for etcd.
+auto-compaction-retention: 30m

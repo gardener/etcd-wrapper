@@ -16,15 +16,17 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/gardener/etcd-wrapper/internal/testutil"
 	"github.com/gardener/etcd-wrapper/internal/types"
-	"go.etcd.io/etcd/client/pkg/v3/transport"
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 
@@ -32,7 +34,7 @@ import (
 )
 
 var (
-	testdataPath       = "../testdata"
+	testdataPath       = "testdata"
 	etcdCertFilePath   = filepath.Join(testdataPath, "etcd-01.pem")
 	etcdCACertFilePath = filepath.Join(testdataPath, "ca.pem")
 	etcdKeyFilePath    = filepath.Join(testdataPath, "etcd-01-key.pem")
@@ -47,8 +49,13 @@ func TestSuit(t *testing.T) {
 		{"readinessHandler", testReadinessHandler},
 		{"createEtcdClient", testCreateEtcdClient},
 		{"isTLSEnabled", testIsTLSEnabled},
-		{"getTLsConfig", testGetTLsConfig},
 	}
+
+	g := NewWithT(t)
+	createTLSResources(g)
+	defer func() {
+		g.Expect(os.RemoveAll(testdataPath)).To(BeNil())
+	}()
 
 	for _, entry := range allTests {
 		t.Run(entry.name, entry.testFn)
@@ -61,8 +68,8 @@ func testQueryEtcdReadiness(t *testing.T) {
 		querySuccess bool
 		expectStatus bool
 	}{
-		{"test: etcd ready status should be set to true when etcd query succeeds", true, true},
-		{"test: etcd ready status should be set to false when etcd query fails", false, false},
+		{"testutil: etcd ready status should be set to true when etcd query succeeds", true, true},
+		{"testutil: etcd ready status should be set to false when etcd query fails", false, false},
 	}
 
 	for _, entry := range table {
@@ -91,8 +98,8 @@ func testReadinessHandler(t *testing.T) {
 		readyStatus    bool
 		expectedStatus int
 	}{
-		{"test: should return http.StatusOK when etcdStatus.Ready is set to true", true, http.StatusOK},
-		{"test: should return http.StatusServiceUnavailable when etcdStatus.Ready is set to false", false, http.StatusServiceUnavailable},
+		{"testutil: should return http.StatusOK when etcdStatus.Ready is set to true", true, http.StatusOK},
+		{"testutil: should return http.StatusServiceUnavailable when etcdStatus.Ready is set to false", false, http.StatusServiceUnavailable},
 	}
 
 	for _, entry := range table {
@@ -123,16 +130,16 @@ func testCreateEtcdClient(t *testing.T) {
 		expectError       bool
 		endpointScheme    string
 	}{
-		{"test: should return valid etcd client with HTTP scheme when no certificates are passed", "", "", "", false, "http"},
-		{"test: should return valid etcd client with HTTPS scheme when all certificates are passed", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, "https"},
-		{"test: should return valid etcd client with HTTP scheme when empty certificate file path is passed", "", etcdKeyFilePath, etcdCACertFilePath, false, "http"},
-		{"test: should return valid etcd client with HTTP scheme when empty key file path is passed", etcdCertFilePath, "", etcdCACertFilePath, false, "http"},
-		{"test: should return valid etcd client with HTTP scheme when empty CA cert file path is passed", etcdCertFilePath, etcdKeyFilePath, "", false, "http"},
-		{"test: should return error when wrong certificate file path is passed", filepath.Join(testdataPath, "does-not-exist.crt"), etcdKeyFilePath, etcdCACertFilePath, true, ""},
+		{"testutil: should return valid etcd client with HTTP scheme when no certificates are passed", "", "", "", false, "http"},
+		{"testutil: should return valid etcd client with HTTPS scheme when all certificates are passed", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, "https"},
+		{"testutil: should return valid etcd client with HTTP scheme when empty certificate file path is passed", "", etcdKeyFilePath, etcdCACertFilePath, false, "http"},
+		{"testutil: should return valid etcd client with HTTP scheme when empty key file path is passed", etcdCertFilePath, "", etcdCACertFilePath, false, "http"},
+		{"testutil: should return valid etcd client with HTTP scheme when empty CA cert file path is passed", etcdCertFilePath, etcdKeyFilePath, "", false, "http"},
+		{"testutil: should return error when wrong certificate file path is passed", filepath.Join(testdataPath, "does-not-exist.crt"), etcdKeyFilePath, etcdCACertFilePath, true, ""},
 	}
 
 	g := NewWithT(t)
-	// create test cert files
+	// create testutil cert files
 	for _, entry := range table {
 		t.Log(entry.description)
 
@@ -141,6 +148,9 @@ func testCreateEtcdClient(t *testing.T) {
 		app.cfg.ClientTLSInfo.CertFile = entry.certFilePath
 		app.cfg.ClientTLSInfo.KeyFile = entry.keyFilePath
 		app.cfg.ClientTLSInfo.TrustedCAFile = entry.trustedCAFilePath
+		app.Config.EtcdClientTLS.CertPath = entry.certFilePath
+		app.Config.EtcdClientTLS.KeyPath = entry.keyFilePath
+		app.Config.EtcdClientTLS.ServerName = app.Config.BackupRestore.GetHost()
 
 		etcdClient, err := app.createEtcdClient()
 		g.Expect(err != nil).To(Equal(entry.expectError))
@@ -160,11 +170,11 @@ func testIsTLSEnabled(t *testing.T) {
 		trustedCAFilePath string
 		expectedResult    bool
 	}{
-		{"test: should return true when all files are present", "test/path/for/certFile", "test/path/for/keyFile", "test/path/for/trustedCAFile", true},
-		{"test: should return false when only certFile is not present", "", "test/path/for/keyFile", "test/path/for/trustedCAFile", false},
-		{"test: should return false when only keyFile is not present", "test/path/for/certFile", "", "test/path/for/trustedCAFile", false},
-		{"test: should return false when only trusterCAFile is not present", "test/path/for/certFile", "test/path/for/keyFile", "", false},
-		{"test: should return true when all files not are present", "", "", "", false},
+		{"testutil: should return true when all files are present", "testutil/path/for/certFile", "testutil/path/for/keyFile", "testutil/path/for/trustedCAFile", true},
+		{"testutil: should return false when only certFile is not present", "", "testutil/path/for/keyFile", "testutil/path/for/trustedCAFile", false},
+		{"testutil: should return false when only keyFile is not present", "testutil/path/for/certFile", "", "testutil/path/for/trustedCAFile", false},
+		{"testutil: should return false when only trusterCAFile is not present", "testutil/path/for/certFile", "testutil/path/for/keyFile", "", false},
+		{"testutil: should return true when all files not are present", "", "", "", false},
 	}
 
 	for _, entry := range table {
@@ -184,67 +194,41 @@ func testIsTLSEnabled(t *testing.T) {
 	}
 }
 
-func testGetTLsConfig(t *testing.T) {
-	table := []struct {
-		description       string
-		certFilePath      string
-		keyFilePath       string
-		trustedCAFilePath string
-		expectError       bool
-		emptyTLSConfig    bool
-	}{
-		{"test: should return valid HTTP TLS config when no certificates are passes", "", "", "", false, true},
-		{"test: should return valid HTTP TLS config when certificate file path is not passed", "", etcdKeyFilePath, etcdCACertFilePath, false, true},
-		{"test: should return valid HTTP TLS config when key file path is not passed", etcdCertFilePath, "", etcdCACertFilePath, false, true},
-		{"test: should return valid HTTP TLS config when CA file path is not passed", etcdCertFilePath, etcdKeyFilePath, "", false, true},
-		{"test: should return valid HTTPS TLS config when all certificates are passes", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, false},
-		{"test: should return error when incorrect certificate file path is passed", filepath.Join(testdataPath, "does-not-exist-cert.crt"), etcdKeyFilePath, etcdCACertFilePath, true, true},
-		{"test: should return error when incorrect key file path is passed", etcdCertFilePath, filepath.Join(testdataPath, "does-not-exist-key.key"), etcdCACertFilePath, true, true},
-		{"test: should return error when incorrect CA file path is passed", etcdCertFilePath, etcdKeyFilePath, filepath.Join(testdataPath, "does-not-exist-ca.crt"), true, true},
-	}
-
-	g := NewWithT(t)
-	// create test cert files
-	for _, entry := range table {
-		t.Log(entry.description)
-
-		ctx, cancel := context.WithCancel(context.Background())
-		app := createApplicationInstance(ctx, cancel, g)
-		app.cfg.ClientTLSInfo.CertFile = entry.certFilePath
-		app.cfg.ClientTLSInfo.KeyFile = entry.keyFilePath
-		app.cfg.ClientTLSInfo.TrustedCAFile = entry.trustedCAFilePath
-
-		tlsConfig, err := app.getTLSConfig()
-
-		if entry.expectError {
-			g.Expect(err).ToNot(BeNil())
-			g.Expect(tlsConfig).To(BeNil())
-		} else {
-			g.Expect(err).To(BeNil())
-			g.Expect(tlsConfig.RootCAs == nil).To(Equal(entry.emptyTLSConfig))
-		}
-
-		app.Close()
-
-	}
-}
-
 func createApplicationInstance(ctx context.Context, cancelFn context.CancelFunc, g *GomegaWithT) *Application {
-	brConfig := &types.BackupRestoreConfig{
-		HostPort:   ":2379",
-		TLSEnabled: false,
-	}
-	app, err := NewApplication(ctx, cancelFn, brConfig, time.Minute, zap.NewExample())
-	g.Expect(err).To(BeNil())
-	app.cfg = &embed.Config{
-		ClientTLSInfo: transport.TLSInfo{
-			CertFile:      "",
-			KeyFile:       "",
-			TrustedCAFile: "",
+	config := types.Config{
+		BackupRestore: types.BackupRestoreConfig{
+			HostPort:   ":2379",
+			TLSEnabled: false,
 		},
 	}
+	app, err := NewApplication(ctx, cancelFn, config, time.Minute, zap.NewExample())
+	g.Expect(err).To(BeNil())
+	app.cfg = &embed.Config{}
 	cli, err := app.createEtcdClient()
 	g.Expect(err).To(BeNil())
 	app.etcdClient = cli
 	return app
+}
+
+func createTLSResources(g *WithT) {
+	var (
+		err                              error
+		caCertKeyPair, clientCertKeyPair *testutil.CertKeyPair
+		tlsResCreator                    *testutil.TLSResourceCreator
+	)
+	if _, err = os.Stat(testdataPath); errors.Is(err, os.ErrNotExist) {
+		g.Expect(os.Mkdir(testdataPath, os.ModeDir|os.ModePerm)).To(Succeed())
+	}
+	tlsResCreator, err = testutil.NewTLSResourceCreator()
+	g.Expect(err).To(BeNil())
+
+	// create and write CA certificate and private key
+	caCertKeyPair, err = tlsResCreator.CreateCACertAndKey()
+	g.Expect(err).To(BeNil())
+	g.Expect(caCertKeyPair.EncodeAndWrite(testdataPath, "ca.pem", "ca-key.pem")).To(Succeed())
+
+	// create and write client certificate and key
+	clientCertKeyPair, err = tlsResCreator.CreateETCDClientCertAndKey()
+	g.Expect(err).To(BeNil())
+	g.Expect(clientCertKeyPair.EncodeAndWrite(testdataPath, "etcd-01.pem", "etcd-01-key.pem")).To(Succeed())
 }
