@@ -4,19 +4,35 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/gardener/etcd-wrapper/internal/types"
 	. "github.com/onsi/gomega"
 )
 
 func TestAddEtcdFlags(t *testing.T) {
 	g := NewWithT(t)
-	tlsEnabled := flag.Bool("backup-restore-tls-enabled", types.DefaultBackupRestoreTLSEnabled, "Enables TLS for communicating with backup-restore container")
-	hostPort := flag.String("backup-restore-host-port", types.DefaultBackupRestoreHostPort, "Host and Port to be used to connect to the backup-restore container")
-	caCertBundlePath := flag.String("backup-restore-ca-cert-bundle-path", "", "File path of CA cert bundle to help establish TLS communication with backup-restore container")
-	fs := flag.FlagSet{}
-	AddEtcdFlags(&fs)
-	g.Expect(backupRestoreConfig).ToNot(BeNil())
-	g.Expect(backupRestoreConfig.TLSEnabled).To(Equal(*tlsEnabled))
-	g.Expect(backupRestoreConfig.HostPort).To(Equal(*hostPort))
-	g.Expect(*backupRestoreConfig.CaCertBundlePath).To(Equal(*caCertBundlePath))
+	expectedBRHostPort := "etcd-main-local:8080"
+	expectedBRCACertPath := "/var/etcd/ssl/ca/bundle.crt"
+	expectedETCDServerName := "etcd-main-local"
+	expectedETCDClientCertPath := "/var/etcd/ssl/client/tls.crt"
+	expectedETCDClientKeyPath := "/var/etcd/ssl/client/tls.key"
+	expectedETCDReadyTimeout := "2m0s"
+	args := []string{
+		"-backup-restore-tls-enabled=true",
+		"-backup-restore-host-port", expectedBRHostPort,
+		"-backup-restore-ca-cert-bundle-path", expectedBRCACertPath,
+		"-etcd-server-name", expectedETCDServerName,
+		"-etcd-client-cert-path", expectedETCDClientCertPath,
+		"-etcd-client-key-path", expectedETCDClientKeyPath,
+		"-etcd-ready-timeout", expectedETCDReadyTimeout,
+	}
+	fs := flag.NewFlagSet("testutil", flag.ContinueOnError)
+	AddEtcdFlags(fs)
+	g.Expect(fs.Parse(args)).To(Succeed())
+	g.Expect(config).ToNot(BeNil())
+	g.Expect(config.BackupRestore.TLSEnabled).To(BeTrue())
+	g.Expect(config.BackupRestore.HostPort).To(Equal(expectedBRHostPort))
+	g.Expect(config.BackupRestore.CaCertBundlePath).To(Equal(expectedBRCACertPath))
+	g.Expect(config.EtcdClientTLS.ServerName).To(Equal(expectedETCDServerName))
+	g.Expect(config.EtcdClientTLS.CertPath).To(Equal(expectedETCDClientCertPath))
+	g.Expect(config.EtcdClientTLS.KeyPath).To(Equal(expectedETCDClientKeyPath))
+	g.Expect(etcdReadyTimeout.String()).To(Equal(expectedETCDReadyTimeout))
 }

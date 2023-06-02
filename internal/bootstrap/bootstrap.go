@@ -52,7 +52,7 @@ func NewEtcdInitializer(brConfig *types.BackupRestoreConfig, logger *zap.Logger)
 	}
 
 	//create backup-restore client
-	brClient, err := brclient.NewDefaultClient(*brConfig, brclient.DefaultEtcdConfigFilePath)
+	brClient, err := brclient.NewDefaultClient(*brConfig)
 	if err != nil {
 		return nil, err
 	}

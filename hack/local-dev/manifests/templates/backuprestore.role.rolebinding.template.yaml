@@ -2,10 +2,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   labels:
-    instance: etcd-test
+    instance: ${etcd_name}
     name: etcd
-  name: druid.gardener.cloud:etcd:etcd-test
-  namespace: default
+  name: druid.gardener.cloud:etcd:${etcd_name}
 rules:
   - apiGroups:
       - coordination.k8s.io
@@ -42,15 +41,13 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   labels:
-    instance: etcd-test
+    instance: ${etcd_name}
     name: etcd
-  name: druid.gardener.cloud:etcd:etcd-test
-  namespace: default
+  name: druid.gardener.cloud:etcd:${etcd_name}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: druid.gardener.cloud:etcd:etcd-test
+  name: druid.gardener.cloud:etcd:${etcd_name}
 subjects:
   - kind: ServiceAccount
-    name: etcd-test
-    namespace: default
+    name: ${etcd_name}

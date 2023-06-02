@@ -13,10 +13,10 @@ func TestResponseHasOKCode(t *testing.T) {
 		responseCode int
 		expectValue  bool
 	}{
-		{"test: 200 response code should return true", http.StatusOK, true},
-		{"test: 201 response code should return true", http.StatusCreated, true},
-		{"test: 202 response code should return true", http.StatusAccepted, true},
-		{"test: 400 response code should return true", http.StatusBadRequest, false},
+		{"testutil: 200 response code should return true", http.StatusOK, true},
+		{"testutil: 201 response code should return true", http.StatusCreated, true},
+		{"testutil: 202 response code should return true", http.StatusAccepted, true},
+		{"testutil: 400 response code should return true", http.StatusBadRequest, false},
 	}
 
 	for _, entry := range table {
@@ -35,8 +35,8 @@ func TestConstructBaseAddress(t *testing.T) {
 		hostPort            string
 		expectedBaseAddress string
 	}{
-		{"test: tls is enabled", true, "localhost:8080", "https://localhost:8080"},
-		{"test: tls is disabled", false, ":2379", "http://:2379"},
+		{"testutil: tls is enabled", true, "localhost:8080", "https://localhost:8080"},
+		{"testutil: tls is disabled", false, ":2379", "http://:2379"},
 	}
 
 	for _, entry := range table {

@@ -16,19 +16,16 @@ TOOLS_DIR                  := hack/tools
 TOOLS_BIN_DIR              := $(TOOLS_DIR)/bin
 GOLANGCI_LINT              := $(TOOLS_BIN_DIR)/golangci-lint
 GO_ADD_LICENSE             := $(TOOLS_BIN_DIR)/addlicense
-CFSSL                      := $(TOOLS_BIN_DIR)/cfssl
 
 # default tool versions
 GOLANGCI_LINT_VERSION ?= v1.51.2
 GO_ADD_LICENSE_VERSION ?= latest
-CFSSL_VERSION ?= latest
 
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 $(info "TOOLS_BIN_DIR from tools.mk", $(TOOLS_BIN_DIR))
 $(info "TOOLS_DIR from tools.mk", $(TOOLS_DIR))
 $(info "PATH from tools.mk", $(PATH))
-$(info "CFSSL_VERSION from tools.mk", $(CFSSL_VERSION))
 
 #########################################
 # Tools                                 #
@@ -41,6 +38,3 @@ $(GOLANGCI_LINT): $(call tool_version_file,$(GOLANGCI_LINT),$(GOLANGCI_LINT_VERS
 
 $(GO_ADD_LICENSE):
 	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/google/addlicense@$(GO_ADD_LICENSE_VERSION)
-
-$(CFSSL):
-	GOBIN=$(abspath $(TOOLS_BIN_DIR)) go install github.com/cloudflare/cfssl/cmd/...@$(CFSSL_VERSION)

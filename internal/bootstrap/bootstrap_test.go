@@ -62,7 +62,7 @@ func testCleanupExitCodeWhenFileExists(t *testing.T, exitCodeFilePath string) {
 	g := NewWithT(t)
 
 	// create exit code file
-	interrupt := []byte("test")
+	interrupt := []byte("testutil")
 	err := os.WriteFile(exitCodeFilePath, interrupt, 0644)
 	g.Expect(err).To(BeNil())
 	// Call CleanupExitCode
@@ -131,10 +131,10 @@ func TestGetValidationMode(t *testing.T) {
 		exitCode               string
 		expectedValidationMode brclient.ValidationType
 	}{
-		{"test: exit code file not being present should result in full validation", "", brclient.FullValidation},
-		{"test: exit code having error string `interrupt` should result in sanity validation", os.Interrupt.String(), brclient.SanityValidation},
-		{"test: exit code having error string `terminated` should result in sanity validation", syscall.SIGTERM.String(), brclient.SanityValidation},
-		{"test: exit code having any other error string should result in full validation", "test", brclient.FullValidation},
+		{"testutil: exit code file not being present should result in full validation", "", brclient.FullValidation},
+		{"testutil: exit code having error string `interrupt` should result in sanity validation", os.Interrupt.String(), brclient.SanityValidation},
+		{"testutil: exit code having error string `terminated` should result in sanity validation", syscall.SIGTERM.String(), brclient.SanityValidation},
+		{"testutil: exit code having any other error string should result in full validation", "testutil", brclient.FullValidation},
 	}
 	for _, entry := range table {
 		testDir := createTestDir(t)
@@ -162,8 +162,8 @@ func TestTryGetEtcdConfig(t *testing.T) {
 		serverReturnsError bool
 		expectError        bool
 	}{
-		{"test: should not return error when etcd config is returned", false, false},
-		{"test: should return error when invalid etcd config is returned", true, true},
+		{"testutil: should not return error when etcd config is returned", false, false},
+		{"testutil: should return error when invalid etcd config is returned", true, true},
 	}
 	for _, entry := range table {
 		testDir := createTestDir(t)
@@ -200,9 +200,9 @@ func TestNewEtcdInitializer(t *testing.T) {
 		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"test: should return error when invalid sidecar config is passed", createSidecarConfig(true, "", ""), true},
-		{"test: should return error when br client creation fails", createSidecarConfig(true, ":2379", "/wrong/file/path"), true},
-		{"test: should not return error when sidecar config is valid and br client creation succeeds", createSidecarConfig(false, ":2379", ""), false},
+		{"testutil: should return error when invalid sidecar config is passed", createSidecarConfig(true, "", ""), true},
+		{"testutil: should return error when br client creation fails", createSidecarConfig(true, ":2379", "/wrong/file/path"), true},
+		{"testutil: should not return error when sidecar config is valid and br client creation succeeds", createSidecarConfig(false, ":2379", ""), false},
 	}
 
 	for _, entry := range table {
@@ -256,6 +256,6 @@ func createSidecarConfig(tlsEnabled bool, hostPort string, caCertBundlePath stri
 	return types.BackupRestoreConfig{
 		HostPort:         hostPort,
 		TLSEnabled:       tlsEnabled,
-		CaCertBundlePath: &caCertBundlePath,
+		CaCertBundlePath: caCertBundlePath,
 	}
 }

@@ -16,9 +16,9 @@ package app
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/util"
@@ -33,7 +33,7 @@ const (
 	etcdConnectionTimeout = 5 * time.Second
 	etcdGetTimeout        = 5 * time.Second
 	etcdQueryInterval     = 2 * time.Second
-	etcdEndpointAddress   = ":2379"
+	etcdEndpointPort      = "2379"
 )
 
 // SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
@@ -67,7 +67,7 @@ func (a *Application) queryAndUpdateEtcdReadiness() {
 	for {
 		// Query etcd readiness and update the status
 		a.etcdReady = a.isEtcdReady()
-
+		a.logger.Info("etcd ready?", zap.Bool("ready-status", a.etcdReady))
 		select {
 		// Stop querying and return when the context is cancelled
 		case <-a.ctx.Done():
@@ -103,7 +103,10 @@ func (a *Application) readinessHandler(w http.ResponseWriter, _ *http.Request) {
 // createEtcdClient creates an ETCD client
 func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	// fetch tls configuration
-	tlsConf, err := a.getTLSConfig()
+	tlsConfig, err := util.CreateTLSConfig(a.isTLSEnabled, a.Config.EtcdClientTLS.ServerName, a.cfg.ClientTLSInfo.TrustedCAFile, &util.KeyPair{
+		CertPath: a.Config.EtcdClientTLS.CertPath,
+		KeyPath:  a.Config.EtcdClientTLS.KeyPath,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -111,10 +114,10 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	// Create etcd client
 	cli, err := clientv3.New(clientv3.Config{
 		Context:     a.ctx,
-		Endpoints:   []string{util.ConstructBaseAddress(a.isTLSEnabled(), etcdEndpointAddress)},
+		Endpoints:   []string{util.ConstructBaseAddress(a.isTLSEnabled(), fmt.Sprintf("%s:%s", a.Config.EtcdClientTLS.ServerName, etcdEndpointPort))},
 		DialTimeout: etcdConnectionTimeout,
 		Logger:      a.logger,
-		TLS:         tlsConf,
+		TLS:         tlsConfig,
 	})
 	if err != nil {
 		return nil, err
@@ -122,31 +125,9 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 	return cli, nil
 }
 
-// getTLSConfig creates a TLS config if TLS has been enabled.
-func (a *Application) getTLSConfig() (*tls.Config, error) {
-	tlsConf := &tls.Config{}
-	if a.isTLSEnabled() {
-		// Create certificate key pair
-		certificate, err := tls.LoadX509KeyPair(a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile)
-		if err != nil {
-			return nil, err
-		}
-
-		// Create CA cert pool
-		caCertPool, err := util.CreateCACertPool(a.cfg.ClientTLSInfo.TrustedCAFile)
-		if err != nil {
-			return nil, err
-		}
-
-		// Create TLS configuration
-		tlsConf.RootCAs = caCertPool
-		tlsConf.Certificates = []tls.Certificate{certificate}
-	}
-	return tlsConf, nil
-}
-
 // isTLSEnabled checks if TLS has been enabled in the etcd configuration.
 func (a *Application) isTLSEnabled() bool {
-	// TODO: make sure we don't have nil pointer dereference
-	return len(a.cfg.ClientTLSInfo.CertFile) != 0 && len(a.cfg.ClientTLSInfo.KeyFile) != 0 && len(a.cfg.ClientTLSInfo.TrustedCAFile) != 0
+	return len(strings.TrimSpace(a.cfg.ClientTLSInfo.CertFile)) != 0 &&
+		len(strings.TrimSpace(a.cfg.ClientTLSInfo.KeyFile)) != 0 &&
+		len(strings.TrimSpace(a.cfg.ClientTLSInfo.TrustedCAFile)) != 0
 }

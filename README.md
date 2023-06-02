@@ -34,8 +34,6 @@ To learn more about `etcd-wrapper` see `/docs` directory, please find the index 
 ## Future improvements
 * It is currently not possible to productively use `etcd-wrapper` without its sidecar([etcd-backup-restore](https://github.com/gardener/etcd-backup-restore)).
 We intend to change this in the near future to make it possible to even productively consume `etcd-wrapper` independently.
-* Once we move to [3.5.7](https://github.com/etcd-io/etcd/releases/tag/v3.5.7) version of etcd, then we will also leverage [Leader change notification channel](https://github.com/etcd-io/etcd/blob/6a0bbf346256960cbbe0218d6ab13443ee93e8e3/server/etcdserver/server.go#L197-L204) 
-to improve the tracking of leadership change. Currently, the sidecar periodically polls for leadership change in an etcd cluster which introduces several issues.
 
 ## Feedback and Support
 We always look forward to active community engagement.

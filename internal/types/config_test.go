@@ -41,20 +41,18 @@ func TestGetBaseAddressWithTLSDisabled(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	emptyCaCertBundlePath := ""
 	table := []struct {
 		description      string
 		tlsEnabled       bool
 		hostPort         string
-		caCertBundlePath *string
+		caCertBundlePath string
 		expectedError    bool
 	}{
-		{"missing host should result in error", false, "2379", nil, true},
-		{"missing port should result in error", false, "localhost", nil, true},
-		{"should allow empty host", false, ":2379", nil, false},
-		{"should disallow specifying scheme", false, "http://localhost:2379", nil, true},
-		{"should disallow nil caCertBundlePath when TLS is enabled", true, ":2379", nil, true},
-		{"should disallow empty caCertBundlePath when TLS is enabled", true, ":2379", &emptyCaCertBundlePath, true},
+		{"missing host should result in error", false, "2379", "", true},
+		{"missing port should result in error", false, "localhost", "", true},
+		{"should allow empty host", false, ":2379", "", false},
+		{"should disallow specifying scheme", false, "http://localhost:2379", "", true},
+		{"should disallow empty caCertBundlePath when TLS is enabled", true, ":2379", "", true},
 	}
 	for _, entry := range table {
 		g := NewWithT(t)
@@ -74,6 +72,6 @@ func createSidecarConfig(tlsEnabled bool, hostPort string) BackupRestoreConfig {
 	return BackupRestoreConfig{
 		HostPort:         hostPort,
 		TLSEnabled:       tlsEnabled,
-		CaCertBundlePath: &caCertBundlePath,
+		CaCertBundlePath: caCertBundlePath,
 	}
 }

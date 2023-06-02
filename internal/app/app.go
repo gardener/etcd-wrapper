@@ -28,8 +28,10 @@ import (
 
 // Application is a top level struct which serves as an entry point for this application.
 type Application struct {
-	ctx              context.Context
-	cancelFn         context.CancelFunc
+	ctx      context.Context
+	cancelFn context.CancelFunc
+	// Config is the application config
+	Config           types.Config
 	etcdInitializer  bootstrap.EtcdInitializer
 	cfg              *embed.Config
 	etcdClient       *clientv3.Client
@@ -40,14 +42,16 @@ type Application struct {
 }
 
 // NewApplication initializes and returns an application struct
-func NewApplication(ctx context.Context, cancelFn context.CancelFunc, brConfig *types.BackupRestoreConfig, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
-	etcdInitializer, err := bootstrap.NewEtcdInitializer(brConfig, logger)
+func NewApplication(ctx context.Context, cancelFn context.CancelFunc, config types.Config, waitReadyTimeout time.Duration, logger *zap.Logger) (*Application, error) {
+	logger.Info("Initializing application", zap.Any("config", config))
+	etcdInitializer, err := bootstrap.NewEtcdInitializer(&config.BackupRestore, logger)
 	if err != nil {
 		return nil, err
 	}
 	return &Application{
 		ctx:              ctx,
 		cancelFn:         cancelFn,
+		Config:           config,
 		etcdInitializer:  etcdInitializer,
 		waitReadyTimeout: waitReadyTimeout,
 		logger:           logger,

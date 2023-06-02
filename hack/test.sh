@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -xe
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-
-source "$(dirname "${0}")"/pki_gen.sh
 
 # create the testdata directory to all PKI resources that are created. All unit tests will refer
 # to PKI resources kept under this path.
@@ -28,13 +26,6 @@ mkdir -p "${TEST_PKI_DIR}"
 
 echo "> Test..."
 
-echo "> Generating PKI material for tests..."
-generatePKI "${TEST_PKI_DIR}"
-
-go env
-
 echo "> Running tests..."
-go test -v "$@"
-
-echo "> Removing PKI material..."
-cleanupPKI "${TEST_PKI_DIR}"
+go test -v -coverprofile cover.out "$@"
+go tool cover -func=cover.out

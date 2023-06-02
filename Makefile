@@ -18,9 +18,8 @@ build:
 clean:
 	rm -rf $(BIN_DIR)/
 
-#-count=1 needed so that test results are not cached
 .PHONY: test
-test: $(CFSSL)
+test:
 	@./hack/test.sh ./cmd/... ./internal/...
 
 .PHONY: revendor
