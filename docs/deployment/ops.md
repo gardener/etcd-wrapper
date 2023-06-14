@@ -17,13 +17,25 @@ We propose to use an [Ephemeral container](https://kubernetes.io/docs/concepts/w
 1. Use the dockerfile present in `ops/` to build the debug image
    
    ```bash
-   docker build -f ops/Dockerfile -f <registry_name>/<repo_name>:<version> ./
+   docker build -f ops/Dockerfile -t <registry_name>/<image_name>:<image_tag> ./
    ```
 
-2. Push the image to image registry
+### Uploading Docker Image
+
+There are two options to upload the docker image:
+
+1. After building and tagging the image one can simply use the following command to push the image to a public docker repository or private docker repository which your organization supports via the following command:
    
    ```bash
-   docker push <registry_name>/<repo_name>:<version> 
+   docker push <registry_name>/<image_name>:<image_tag>
+   ```
+
+2. For local development it is usually much faster to just build the docker image locally (assuming that you have [docker-desktop](https://www.docker.com/products/docker-desktop/) already installed). To enable KIND cluster to pull these images execute the following command:
+   
+   ```bash
+   # cluster-name is optional if you are using the default 'kind' cluster
+   # image-name and image-tag are the same that you have used when building docker images locally
+   > kind load -n <cluster-name> docker-image <image-name:image-tag>
    ```
 
 ### Using the image
