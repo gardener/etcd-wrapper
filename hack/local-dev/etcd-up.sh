@@ -192,7 +192,7 @@ function create_etcd_config() {
   etcd_peer_service_name="${ETCD_INSTANCE_NAME}"-peer
   etcd_initial_cluster=$(create_etcd_config_initial_cluster)
 
-  if [[ "${ETCD_CLUSTER_SIZE}" -gt 1 ]]; then
+  if [[ "${TLS_ENABLED}" == "true" && "${ETCD_CLUSTER_SIZE}" -gt 1 ]]; then
     peer_url_scheme="https"
   fi
 
@@ -280,7 +280,7 @@ EOF
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/lease.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd.sts.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-main-bootstrap.cm.yaml"' "${target_path}"
-    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-peer.svc.yaml"' "${target_path}"
+#    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-peer.svc.yaml"' "${target_path}"
   else
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/lease.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/etcd.sts.yaml"' "${target_path}"

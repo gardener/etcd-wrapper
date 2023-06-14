@@ -84,7 +84,7 @@ func (a *Application) queryAndUpdateEtcdReadiness() {
 func (a *Application) isEtcdReady() bool {
 	etcdConnCtx, cancelFunc := context.WithTimeout(a.ctx, etcdGetTimeout)
 	defer cancelFunc()
-	_, err := a.etcdClient.Get(etcdConnCtx, "foo", clientv3.WithSerializable())
+	_, err := a.etcdClient.Get(etcdConnCtx, "foo" /*, clientv3.WithSerializable()*/)
 	if err != nil {
 		a.logger.Error("failed to retrieve from etcd db", zap.Error(err))
 	}

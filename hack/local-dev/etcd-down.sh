@@ -53,7 +53,7 @@ function delete_pvcs() {
   pvcs=( "${resp}" )
   for pvc in "${pvcs[@]}"; do
     echo "> Deleting pvc ${pvc}..."
-    kubectl delete "${pvc}" -n "${TARGET_NAMESPACE}"
+    kubectl delete ${pvc} -n "${TARGET_NAMESPACE}"
   done
 }
 

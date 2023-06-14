@@ -52,7 +52,7 @@ const (
 	// FullValidation does a complete validation of the etcd DB.
 	FullValidation ValidationType = "full" // validation_full
 	// httpClientRequestTimeout is the timeout for all requests made by the http client
-	httpClientRequestTimeout = 10 * time.Second
+	httpClientRequestTimeout = 1 * time.Minute
 )
 
 // BackupRestoreClient is a client to connect to the backup-restore HTTPs server.
