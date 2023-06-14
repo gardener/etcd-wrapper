@@ -37,9 +37,9 @@ and starts an embedded etcd.
 Flags:
 	--backup-restore-tls-enabled
 		Enables TLS for communicating with backup-restore if its value is true. It is disabled by default.
-	--backup-restore-host-port string
+	--backup-restore-host-port
 		Host address and port of the backup restore with which this container will interact during initialization. Should be of the format <host>:<port> and must not include the protocol.
-	--backup-restore-ca-cert-bundle-path string
+	--backup-restore-ca-cert-bundle-path
 		Path of CA cert bundle (This will be used when TLS is enabled via backup-restore-tls-enabled flag.
     --etcd-client-cert-path
 		Path of TLS certificate of the etcd client (This will be used if client-transport-security is set in the etcd configuration).

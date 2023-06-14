@@ -16,6 +16,7 @@ ETCD_BR_IMAGE=""
 ETCD_WRAPPER_IMAGE="etcd-wrapper"
 ETCD_PVC_RETAIN_POLICY="Retain"
 SKAFFOLD_RUN_MODE="run"
+DRY_RUN="false"
 
 declare -a PKI_RESOURCES
 
@@ -37,8 +38,9 @@ function create_usage() {
    -e | --cert-expiry                 <certificate expiry>                  (Optional) common expiry for all certificates generated. Defaults to '12h'
    -m | --etcd-br-image               <image:tag of etcd-br container>      (Required) Image (with tag) for etcdbr container
    -w | --etcd-wrapper-image          <image:tag of etcd-wrapper container> (Optional) Image (with tag) for etcd-wrapper container
-   -r | --skaffold-run-mode           <skaffold run or debug>               (Optional) Possible values: 'run' | 'debug'. Defaults to 'run'.
+   -r | --skaffold-run-mode           <skaffold run or debug>               (Optional) Possible values: 'run' | 'debug'. Defaults to 'run'. Will only be effective if '-d | --dry-run' is not specified.
    -f | --force-create-pki-resources                                        (Optional) If specified then it will re-create all PKI resources.
+   -d | --dry-run                                                           (Optional) If set it will only generate all manifests and configuration files. The user needs to explicitly run skaffold to deploy the k8s resources.
    ")
   echo "${usage}"
 }
@@ -112,6 +114,9 @@ function parse_flags() {
     --skaffold-run-mode | -r)
       shift
       SKAFFOLD_RUN_MODE="$1"
+      ;;
+    --dry-run | -d)
+      DRY_RUN="true"
       ;;
     --help | -h)
       shift
@@ -294,13 +299,28 @@ function main() {
   # parse flags and validate global variables which got initialized with flag values.
   parse_flags "$@"
   validate_args
-  create_namespace
   create_pki_resources
   create_etcd_config
   create_k8s_resources
   generate_skaffold_yaml
-  skaffold "${SKAFFOLD_RUN_MODE}" -n "${TARGET_NAMESPACE}"
-  echo "> Successfully create etcd resource in namespace: ${TARGET_NAMESPACE}"
+  if [[ "${DRY_RUN}" == "false" ]]; then
+    create_namespace
+    skaffold "${SKAFFOLD_RUN_MODE}" -n "${TARGET_NAMESPACE}"
+    echo "> Successfully create etcd resource in namespace: ${TARGET_NAMESPACE}"
+  else
+    cat <<EOF
+
+📌 NOTE:
+---------------------------------------------------------------------------
+All resources are generated successfully.
+A 'skaffold.yaml' file is generated and put in the root of the project folder.
+Ensure your current-context is targeting the k8s cluster that you wish to use.
+To deploy these resources execute 'skaffold run -n <target-namespace>'
+If you are actively developing then you can also use 'dev' run-mode offered by 'skaffold'.
+To do that execute 'skaffold dev -n <target-namespace>"
+
+EOF
+  fi
 }
 
 USAGE=$(create_usage)
