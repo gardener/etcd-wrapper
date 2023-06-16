@@ -36,8 +36,7 @@ spec:
           volumeMounts:
             - mountPath: /var/etcd/data/
               name: ${etcd_name}
-        - command:
-            - etcdbrctl
+        - args:
             - server
             - --defragmentation-schedule=1-59 * * * *
             - --schedule=42 16 * * *

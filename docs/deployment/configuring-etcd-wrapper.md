@@ -44,7 +44,14 @@ spec:
         name: etcd
     spec:
       containers:
-        - args: [start-etcd, '--backup-restore-tls-enabled=true', '--backup-restore-host-port=etcd-main-local:8080', '--etcd-server-name=etcd-main-local', '--etcd-client-cert-path=/var/etcd/ssl/client/client/tls.crt', '--etcd-client-key-path=/var/etcd/ssl/client/client/tls.key', '--backup-restore-ca-cert-bundle-path=/var/etcd/ssl/client/ca/bundle.crt']
-          image: etcd-wrapper:tag # change this to where you have hosted the docker image for etcd-wrapper along with its tag
-          imagePullPolicy: IfNotPresent
+      - args:
+        - start-etcd 
+        - --backup-restore-tls-enabled=true
+        - --backup-restore-host-port=etcd-main-local:8080
+        - --etcd-server-name=etcd-main-local
+        - --etcd-client-cert-path=/var/etcd/ssl/client/client/tls.crt
+        - --etcd-client-key-path=/var/etcd/ssl/client/client/tls.key
+        - --backup-restore-ca-cert-bundle-path=/var/etcd/ssl/client/ca/bundle.crt
+        image: etcd-wrapper:tag # change this to where you have hosted the docker image for etcd-wrapper along with its tag
+        imagePullPolicy: IfNotPresent
 ```
