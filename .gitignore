@@ -17,5 +17,10 @@
 .idea
 .DS_Store
 
+# Generated manifest files
+hack/local-dev/manifests/common/*.yaml
+hack/local-dev/manifests/singlenode/*.yaml
+hack/local-dev/manifests/multinode/*.yaml
+
 # Go workspace file
 go.work

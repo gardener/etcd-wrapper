@@ -20,6 +20,23 @@ spec:
         instance: ${etcd_name}
         name: etcd
     spec:
+      initContainers:
+        - args:
+            - chown -R 65532:65532 /var/etcd/data
+          command:
+            - sh
+            - -c
+            - --
+          image: alpine:3.18.0
+          imagePullPolicy: IfNotPresent
+          name: change-permissions
+          securityContext:
+            runAsGroup: 0
+            runAsNonRoot: false
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /var/etcd/data/
+              name: ${etcd_name}
       containers:
         - args:
             - start-etcd
@@ -73,6 +90,10 @@ spec:
           image: ${etcd_br_image}
           imagePullPolicy: IfNotPresent
           name: backup-restore
+          securityContext:
+            capabilities:
+              add:
+                - SYS_PTRACE
           ports:
             - containerPort: 8080
               name: server
@@ -87,6 +108,10 @@ spec:
             - ${etcd_name}-local
           ip: 127.0.0.1
       serviceAccountName: ${etcd_name}
+      securityContext:
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
       volumes:
         - configMap:
             defaultMode: 420
