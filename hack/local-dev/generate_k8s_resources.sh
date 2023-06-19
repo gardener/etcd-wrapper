@@ -183,13 +183,13 @@ function k8s::generate_statefulset() {
 
   update_sts_volume_mounts "${tls_enabled}" "${etcd_cluster_size}" "${target_path}"
   update_sts_volumes "${etcd_name}" "${tls_enabled}" "${etcd_cluster_size}" "${target_path}"
-  update_sts_br_command "${tls_enabled}" "${target_path}"
+  update_sts_br_command_args "${tls_enabled}" "${target_path}"
   update_sts_etcd_wrapper_args "${etcd_name}" "${tls_enabled}" "${target_path}"
 
   unset etcd_name etcd_cluster_size etcd_wrapper_image etcd_br_image tls_enabled etcd_pvc_retain_policy etcd_cm_name scheme
 }
 
-function update_sts_br_command() {
+function update_sts_br_command_args() {
   if [[ $# -ne 2 ]]; then
     echo -e "${FUNCNAME[0]} expects two arguments: tls enabled bool and target path"
     exit 1
@@ -198,16 +198,16 @@ function update_sts_br_command() {
   local target_path="$2"
 
   if [[ "${tls_enabled}" == "true" ]]; then
-    yq -i '.spec.template.spec.containers[1].command += "--server-cert=/var/etcd/ssl/client/server/tls.crt"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--server-key=/var/etcd/ssl/client/server/tls.key"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--cert=/var/etcd/ssl/client/client/tls.crt"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--key=/var/etcd/ssl/client/client/tls.key"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--insecure-skip-tls-verify=false"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--insecure-transport=false"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--cacert=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--server-cert=/var/etcd/ssl/client/server/tls.crt"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--server-key=/var/etcd/ssl/client/server/tls.key"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--cert=/var/etcd/ssl/client/client/tls.crt"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--key=/var/etcd/ssl/client/client/tls.key"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--insecure-skip-tls-verify=false"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--insecure-transport=false"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--cacert=/var/etcd/ssl/client/ca/bundle.crt"' "${target_path}"
   else
-    yq -i '.spec.template.spec.containers[1].command += "--insecure-skip-tls-verify=true"' "${target_path}"
-    yq -i '.spec.template.spec.containers[1].command += "--insecure-transport=true"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--insecure-skip-tls-verify=true"' "${target_path}"
+    yq -i '.spec.template.spec.containers[1].args += "--insecure-transport=true"' "${target_path}"
   fi
 }
 
