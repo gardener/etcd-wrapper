@@ -27,22 +27,25 @@ import (
 	"github.com/gardener/etcd-wrapper/internal/bootstrap"
 	"github.com/gardener/etcd-wrapper/internal/signal"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
-const (
-	defaultLogLevel = zapcore.InfoLevel
-)
+// const (
+// 	defaultLogLevel = zapcore.InfoLevel
+// )
 
 func main() {
 	args := os.Args[1:]
 	checkArgs(args)
-	logger, err := bootstrap.SetupLogger(defaultLogLevel)
+
+	//create logger
+	loggerCfg := bootstrap.SetupLoggerConfig(types.DefaultLogLevel)
+	mainLogger, err := loggerCfg.Build()
 	if err != nil {
 		log.Fatalf("error creating zap logger %v", err)
 	}
 
-	ctx, cancelFn := signal.SetupHandler(logger, bootstrap.CaptureExitCode, types.DefaultExitCodeFilePath)
+	//setup signal handler
+	ctx, cancelFn := signal.SetupHandler(mainLogger, bootstrap.CaptureExitCode, types.DefaultExitCodeFilePath)
 
 	// Add flags
 	fs := flag.CommandLine
@@ -50,11 +53,11 @@ func main() {
 	_ = fs.Parse(args[1:])
 
 	// Print all flags
-	printFlags(logger)
+	printFlags(mainLogger)
 
 	// InitAndStartEtcd command
-	if err = cmd.EtcdCmd.Run(ctx, cancelFn, logger); err != nil {
-		logger.Fatal("error during start or run of etcd", zap.Error(err))
+	if err = cmd.EtcdCmd.Run(ctx, cancelFn, mainLogger); err != nil {
+		mainLogger.Fatal("error during start or run of etcd", zap.Error(err))
 	}
 }
 

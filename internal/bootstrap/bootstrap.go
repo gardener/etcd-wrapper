@@ -25,7 +25,8 @@ import (
 
 	"github.com/gardener/etcd-wrapper/internal/brclient"
 	"github.com/gardener/etcd-wrapper/internal/util"
-	"go.etcd.io/etcd/server/v3/embed"
+
+	"go.etcd.io/etcd/embed"
 	"go.uber.org/zap"
 )
 

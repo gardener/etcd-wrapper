@@ -21,9 +21,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gardener/etcd-wrapper/internal/bootstrap"
+	"github.com/gardener/etcd-wrapper/internal/types"
 	"github.com/gardener/etcd-wrapper/internal/util"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 )
 
@@ -116,7 +118,7 @@ func (a *Application) createEtcdClient() (*clientv3.Client, error) {
 		Context:     a.ctx,
 		Endpoints:   []string{util.ConstructBaseAddress(a.isTLSEnabled(), fmt.Sprintf("%s:%s", a.Config.EtcdClientTLS.ServerName, etcdEndpointPort))},
 		DialTimeout: etcdConnectionTimeout,
-		Logger:      a.logger,
+		LogConfig:   bootstrap.SetupLoggerConfig(types.DefaultLogLevel),
 		TLS:         tlsConfig,
 	})
 	if err != nil {
