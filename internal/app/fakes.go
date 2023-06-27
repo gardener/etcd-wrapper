@@ -17,7 +17,7 @@ package app
 import (
 	"context"
 
-	clientv3 "go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/clientv3"
 )
 
 // EtcdFakeKV mocks the KV interface of etcd required to mock etcd get calls

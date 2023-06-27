@@ -19,8 +19,8 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// SetupLogger configures a default Zap logger.
-func SetupLogger(level zapcore.Level) (*zap.Logger, error) {
+// SetupLoggerConfig configures a default Zap logger.
+func SetupLoggerConfig(level zapcore.Level) *zap.Config {
 	encoderConfig := zap.NewProductionEncoderConfig()
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
@@ -28,9 +28,5 @@ func SetupLogger(level zapcore.Level) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
 	cfg.EncoderConfig = encoderConfig
 	cfg.Level = zap.NewAtomicLevelAt(level)
-	l, err := cfg.Build()
-	if err != nil {
-		return nil, err
-	}
-	return l, nil
+	return &cfg
 }
