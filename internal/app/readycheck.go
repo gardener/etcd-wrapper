@@ -25,7 +25,7 @@ import (
 	"github.com/gardener/etcd-wrapper/internal/types"
 	"github.com/gardener/etcd-wrapper/internal/util"
 
-	clientv3 "go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 )
 

@@ -31,7 +31,7 @@ metadata:
 spec:
   persistentVolumeClaimRetentionPolicy:
     whenDeleted: Retain
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       instance: etcd-main
