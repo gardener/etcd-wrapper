@@ -21,6 +21,9 @@
 hack/local-dev/manifests/common/*.yaml
 hack/local-dev/manifests/singlenode/*.yaml
 hack/local-dev/manifests/multinode/*.yaml
+internal/testdata/*.pem
+internal/testdata/*.json
+internal/testdata/*.csr
 
 # Go workspace file
 go.work
