@@ -30,9 +30,8 @@ var (
 	EtcdCmd = Command{
 		Name:      "start-etcd",
 		ShortDesc: "Starts the etcd-wrapper application by initializing and starting an embedded etcd",
-		UsageLine: "",
 		LongDesc: `Initializes the etcd data directory by coordinating with a backup-sidecar container
-and starts an embedded etcd.
+and starts an embedded etcd which is exposed on port 2379 for client traffic.
 
 Flags:
 	--backup-restore-tls-enabled

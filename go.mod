@@ -6,6 +6,13 @@ go 1.20
 require github.com/onsi/gomega v1.27.5
 
 require (
+	// Etcd issue Ref: https://github.com/etcd-io/etcd/issues/12068
+	// Etcd 3.4.x vendoring issue Ref: https://github.com/etcd-io/etcd/issues/11154#issuecomment-677940701
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20230512014047-a603c0798948 // a603c0798948 is the SHA for git tag v3.4.26
+	go.uber.org/zap v1.24.0
+)
+
+require (
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
@@ -38,12 +45,8 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20201229170055-e5319fda7802 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
-	// Etcd issue Ref: https://github.com/etcd-io/etcd/issues/12068
-	// Etcd 3.4.x vendoring issue Ref: https://github.com/etcd-io/etcd/issues/11154#issuecomment-677940701
-	go.etcd.io/etcd v0.5.0-alpha.5.0.20230512014047-a603c0798948 // a603c0798948 is the SHA for git tag v3.4.26
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.24.0
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect

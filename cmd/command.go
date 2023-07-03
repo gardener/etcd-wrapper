@@ -27,8 +27,6 @@ type Command struct {
 	Name string
 	// ShortDesc is the short description of the command.
 	ShortDesc string
-	// UsageLine is the text describing the usage of the command.
-	UsageLine string
 	// LongDesc is the text containing the details of the command.
 	LongDesc string
 	// AddFlags provides a generic way for commands to initialize flags to the passed in FlagSet.

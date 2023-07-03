@@ -4,7 +4,7 @@
 
 The purpose of this document is to explain the start-up and shutdown-down phases of etcd-wrapper.
 
-> Etcd-wrapper is not designed to run as a stand-alone application, but in tandem with [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) which runs as a sidecar. This sidecar performs operations to support etcd such as data directory initialization and restoration, regular data directory defragmentation, automatic backups, etc.
+> Etcd-wrapper is not designed to run as a stand-alone application, but in tandem with [etcd-backup-restore](https://github.com/gardener/etcd-backup-restore) which runs as a sidecar. This sidecar performs operations to support etcd such as data directory validation, optional restoration, etcd configuration provider, regular database defragmentation, automatic backups, etc.
 
 ## Lifecycle
 
@@ -30,7 +30,7 @@ The loop starts with querying the `etcd-backup-restore` container if an initiali
 
 If initialisation status is `New` then it does the following:
 
-* It tries to determine what is the validation mode with which a new initiliasation should be triggered. Two validation modes are supported at present - `sanity` and `full`. An appropriate validation mode is selected based on the last captured `exit-code` of `etcd-wrapper`. If there was a graceful termination then it opts for `sanity` checks only. In all other cases (no exit-code captured or non-graceful termination exit-code), it opts for `full` validation.
+* It tries to determine what is the validation mode with which a new initialisation should be triggered. Two validation modes are supported at present - `sanity` and `full`. An appropriate validation mode is selected based on the last captured `exit-code` of `etcd-wrapper`. If there was a graceful termination then it opts for `sanity` checks of etcd data directory only. In all other cases (no exit-code captured or non-graceful termination exit-code), it opts for `full` validation of the etcd data directory.
 
 * Triggers initiliasation with the selected `validation-mode` to `etcd-backup-restore` container/process.
 
