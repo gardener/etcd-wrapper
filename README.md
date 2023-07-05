@@ -8,7 +8,7 @@
 
 `etcd-wrapper` configures and starts an embedded etcd.
 
-In gardener context, each control plane (whether it is part of a seed or a shoot) gets its own etcd cluster.
+In [gardener](https://github.com/gardener/gardener) context, each control plane (whether it is part of a seed or a shoot) gets its own etcd cluster.
 An etcd cluster is realized as a [StatefulSet](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/).
 
 Each etcd member is a two container `Pod` which consists of:
