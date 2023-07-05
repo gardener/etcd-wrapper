@@ -105,7 +105,6 @@ func CaptureExitCode(signal os.Signal, exitCodeFilePath string) error {
 func CleanupExitCode(exitCodeFilePath string) error {
 	err := os.Remove(exitCodeFilePath)
 	if errors.Is(err, os.ErrNotExist) {
-		//log file does not exist
 		return nil
 	}
 	return err
