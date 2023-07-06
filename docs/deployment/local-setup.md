@@ -85,7 +85,7 @@ To setup an ETCD cluster use the following script:
 **Example Usage**
 
 ```bash
-./hack/local-dev/etcd-up.sh -n test-ns -s 3 -t true -i etcd-main -m etcdbr:dev -w etcd-wrapper:dev
+./hack/local-dev/etcd-up.sh -n test-ns -s 3 -t true -i etcd-main -m <etcd-br-image:tag> -w etcd-wrapper
 ```
 
 The above command will eventually generate:
