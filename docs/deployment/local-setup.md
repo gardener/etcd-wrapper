@@ -38,6 +38,28 @@ The setup will create a `Pod` with two containers: `etcd-wrapper` and `etcd-back
    > kind load -n <cluster-name> docker-image <image-name:image-tag>
    ```
 
+## Pre-requisites
+
+Scripts that are created to create resources for an etcd cluster uses the following tools. Please ensure that you have installed them. The script will also point out in case a tool used is missing with an appropriate link which has the installation instructions.
+
+```bash
+# YQ is a YAML processor, please see install instructions at 
+# https://github.com/mikefarah/yq#install
+> yq
+```
+
+```bash
+# CFSSL is a tool that is used to generate PKI resources
+# To install follow install instructions at https://github.com/cloudflare/cfssl#installation
+> cfssl
+```
+
+```bash
+# Skaffold eases the setup of k8s resources and offers dev and debug capabilities
+# To install please see install instructions at https://skaffold.dev/docs/install/
+> skaffold
+```
+
 ## Setup ETCD Cluster
 
 To setup an ETCD cluster use the following script:
@@ -58,7 +80,6 @@ To setup an ETCD cluster use the following script:
    -r | --skaffold-run-mode           <skaffold run or debug>               (Optional) Possible values: 'run' | 'debug'. Defaults to 'run'. Will only be effective if '-d | --dry-run' is not specified.
    -f | --force-create-pki-resources                                        (Optional) If specified then it will re-create all PKI resources.
    -d | --dry-run                                                           (Optional) If set it will only generate all manifests and configuration files. The user needs to explicitly run skaffold to deploy the k8s resources.
-
 ```
 
 **Example Usage**
