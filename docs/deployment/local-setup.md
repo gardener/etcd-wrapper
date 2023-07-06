@@ -128,15 +128,7 @@ The above command will create the following resources:
 
 > **NOTE:** Once the PKI resources are generated using the default expiry of 12h or a user provided expiry via `-e | --cert-expiry` flag, these will not be re-generated every time you run `./hack/local-dev/etcd-up.sh` unless you explicitly specify `-f | --force-create-pki-resources` flag.
 
-## Cleaning up all generated files
-
-If you wish to clean up all generated files (PKI resources and k8s manifests) then use the following script:
-
-```bash
-./hack/local-dev/cleanup.sh
-```
-
-## Bringing down ETCD cluster
+## ## Bringing down ETCD cluster
 
 Bringing down an ETCD cluster will delete all the k8s resources that are created for the etcd-cluster. To delete an ETCD cluster use the following script:
 
@@ -152,6 +144,16 @@ Bringing down an ETCD cluster will delete all the k8s resources that are created
 ```bash
 ./hack/local-dev/etcd-down.sh --namespace test-ns
 ```
+
+## Cleaning up all generated files
+
+If you wish to clean up all generated files (PKI resources and k8s manifests) then use the following script:
+
+```bash
+./hack/local-dev/cleanup.sh
+```
+
+> **WARNING:** If you cleanup all generated files then you will not be able to use `./hack/local-dev/etcd-down.sh` as the cleaup will also remove the generated skaffold.yaml which is used to remove all etcd resources from the target k8s cluster.
 
 ## Bringing down KIND cluster
 
