@@ -27,8 +27,13 @@ function cleanup_resources() {
     rm "${skaffold_path}"
   fi
 }
-
-echo "Cleanup will remove all resources including skaffold YAML file. You will not be able to cleanup etcd resources using etcd-down.sh script. Do you wish to continue?"
+cat <<EOF
+📌 NOTE:
+  Cleanup will remove all resources including skaffold YAML file.
+  skaffold YAML is used to cleanup all etcd resources in etcd-down.sh script.
+  Cleaning up generated files will hamper usage of etcd-down.sh script.
+  Do you wish to continue?
+EOF
 select yn in "Yes" "No"; do
   case $yn in
   Yes)
@@ -38,4 +43,3 @@ select yn in "Yes" "No"; do
   No) exit ;;
   esac
 done
-
