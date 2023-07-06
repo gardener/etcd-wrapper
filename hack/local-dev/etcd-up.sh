@@ -37,7 +37,7 @@ function create_usage() {
    -i | --etcd-instance-name          <name of etcd instance>               (Option) name of the etcd instance. Defaults to 'etcd-main'
    -e | --cert-expiry                 <certificate expiry>                  (Optional) common expiry for all certificates generated. Defaults to '12h'
    -m | --etcd-br-image               <image:tag of etcd-br container>      (Required) Image (with tag) for etcdbr container
-   -w | --etcd-wrapper-image          <image:tag of etcd-wrapper container> (Optional) Image (with tag) for etcd-wrapper container
+   -w | --etcd-wrapper-image          <image of etcd-wrapper container>     (Optional) Image (without tag) for etcd-wrapper container. Skaffold will add git-commit as the tag when it builds the etcd-wrapper image.
    -r | --skaffold-run-mode           <skaffold run or debug>               (Optional) Possible values: 'run' | 'debug'. Defaults to 'run'. Will only be effective if '-d | --dry-run' is not specified.
    -f | --force-create-pki-resources                                        (Optional) If specified then it will re-create all PKI resources.
    -d | --dry-run                                                           (Optional) If set it will only generate all manifests and configuration files. The user needs to explicitly run skaffold to deploy the k8s resources.
@@ -137,6 +137,14 @@ function validate_args() {
     echo -e "etcd-br-image is not set."
     exit 1
   fi
+  # split ETCD_WRAPPER_IMAGE and ensure that only an image name is passed and no tag is passed
+  IFS=':'
+  read -ra wrapper_image_parts <<<"${ETCD_WRAPPER_IMAGE}"
+  if [[ "${#wrapper_image_parts[@]}" -gt 1 ]]; then
+    echo -e "etcd-wrapper-image should only have an image name and should not have any tags. Please remove the tag and retry."
+    exit 1
+  fi
+  unset IFS
 }
 
 function create_namespace() {
@@ -285,7 +293,7 @@ EOF
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/lease.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd.sts.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-main-bootstrap.cm.yaml"' "${target_path}"
-#    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-peer.svc.yaml"' "${target_path}"
+    #    yq -i '.manifests.rawYaml += "hack/local-dev/manifests/multinode/etcd-peer.svc.yaml"' "${target_path}"
   else
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/lease.yaml"' "${target_path}"
     yq -i '.manifests.rawYaml += "hack/local-dev/manifests/singlenode/etcd.sts.yaml"' "${target_path}"
