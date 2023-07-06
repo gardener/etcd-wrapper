@@ -153,7 +153,7 @@ If you wish to clean up all generated files (PKI resources and k8s manifests) th
 ./hack/local-dev/cleanup.sh
 ```
 
-> **WARNING:** If you cleanup all generated files then you will not be able to use `./hack/local-dev/etcd-down.sh` as the cleaup will also remove the generated skaffold.yaml which is used to remove all etcd resources from the target k8s cluster.
+> **WARNING:** If you cleanup all generated files using `cleanup.sh` after which you try and use `./hack/local-dev/etcd-down.sh` then it will not be able to delete any k8s resources as the cleaup will also remove the generated skaffold.yaml which is used to remove all etcd resources from the target k8s cluster.
 
 ## Bringing down KIND cluster
 
