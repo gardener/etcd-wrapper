@@ -38,12 +38,31 @@ There are two options to upload the docker image:
    > kind load -n <cluster-name> docker-image <image-name:image-tag>
    ```
 
+> NOTE: If you make any changes to the Dockerfile please do not forget to build and re-load the image for kind cluster to see it.
+
 ### Using the image
 
 > This step adds a new container to an already running pod. Make sure that an etcd pod is already running before you run this step.
 
 ```bash
-kubectl debug -it etcd-test-0 --image=<registry_name>/<repo_name>:<version> --target=etcd
+> kubectl debug -it etcd-test-0 --image=<registry_name>/<repo_name>:<version> --target=etcd
 ```
 
 Now you have a new container as a part of the pod. You can exec into this newly created container and freely run any bash command or any etcdctl command.
+
+### Get ETCD PKI resource paths
+
+If TLS has been enabled then you will need to provide paths to CA-Cert, Server-Cert and  Server-Key to connect to etcd process via `etcdctl`. To get the paths a convenience script is provided which will print all required PKI resource paths.
+
+```bash
+> print-etcd-cert-paths
+ 📌 ETCD PKI resource paths:
+  --------------------------------------------------
+  --cacert=proc/<etcd-wrapper-process-id>/root/var/etcd/ssl/client/ca/bundle.crt
+  --cert=proc/<etcd-wrapper-process-id>/root/var/etcd/ssl/client/client/tls.crt
+  --key=proc/<etcd-wrapper-process-id>/root/var/etcd/ssl/client/client/tls.key
+```
+
+### Work directory
+
+Ephemeral container is started with a non-root user (65532), which does not provide write access to any existing directory. For this reason we have created a `work` directory which is owned by non-root (65532) user. You can use this directory for any temporary creation/copy of files.

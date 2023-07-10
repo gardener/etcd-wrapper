@@ -20,6 +20,7 @@ spec:
         instance: ${etcd_name}
         name: etcd
     spec:
+      shareProcessNamespace: true
       initContainers:
         - args:
             - chown -R 65532:65532 /var/etcd/data
