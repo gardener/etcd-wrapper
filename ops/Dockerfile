@@ -11,12 +11,16 @@ FROM source-$TARGETARCH as source
 FROM alpine:3.15.6
 
 WORKDIR /
+
 RUN apk update \
     && apk --no-cache add \
     bash \
     curl \
-    vim
+    vim \
+    && mkdir -p work \
+    && chown -R 65532:65532 work
 
+COPY --chown=65532:65532 --chmod=744 ops/print-etcd-cert-paths.sh /usr/local/bin/print-etcd-cert-paths
 COPY --from=source /usr/local/bin/etcdctl /usr/local/bin
 
 ENTRYPOINT ["/bin/bash"]

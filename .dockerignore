@@ -6,6 +6,7 @@
 !.dockerignore
 !cmd/
 !hack/
+!ops/
 !vendor/
 !internal/
 !bin/
