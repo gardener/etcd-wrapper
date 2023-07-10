@@ -69,7 +69,6 @@ func (a *Application) queryAndUpdateEtcdReadiness() {
 	for {
 		// Query etcd readiness and update the status
 		a.etcdReady = a.isEtcdReady()
-		a.logger.Info("etcd ready?", zap.Bool("ready-status", a.etcdReady))
 		select {
 		// Stop querying and return when the context is cancelled
 		case <-a.ctx.Done():
