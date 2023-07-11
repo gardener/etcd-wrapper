@@ -1,16 +1,28 @@
 ---
-name: Bug Report
-about: Report a bug
+name: Bug report
+about: Create a report to help us improve
+title: "[BUG]"
 labels: kind/bug
+assignees: ''
 
 ---
 
-**What happened**:
+**Describe the bug:**
+A clear and concise description of what the bug is.
 
-**What you expected to happen**:
+**Expected behavior:**
+A clear and concise description of what you expected to happen.
 
-**How to reproduce it (as minimally and precisely as possible)**:
+**How To Reproduce (as minimally and precisely as possible):**
 
-**Anything else we need to know**:
+**Logs:**
 
-**Environment**:
+**Screenshots (if applicable):**
+
+
+**Environment (please complete the following information):**
+ - Etcd version/commit ID :
+ - Etcd-druid version/commit ID :
+ - Cloud Provider [All/AWS/GCS/ABS/Swift/OSS]:
+
+**Anything else we need to know?**:
