@@ -75,12 +75,12 @@ func testGetEtcdConfig(t *testing.T, etcdConfigFilePath string) {
 		validSidecarBaseAddress bool
 		expectError             bool
 	}{
-		{"testutil: 200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), true, false},
-		{"testutil: 202 response code should return a valid etcd config", http.StatusAccepted, []byte("give me a valid etcd config"), true, false},
-		{"testutil: 201 response code should return a valid etcd config", http.StatusCreated, []byte("give me a valid etcd config"), true, false},
-		{"testutil: 208 response code should return an error", http.StatusAlreadyReported, []byte("give me a valid etcd config"), true, true},
-		{"testutil: 400 response code should return an error", http.StatusBadRequest, []byte("give me a valid etcd config"), true, true},
-		{"testutil: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
+		{"200 response code should return a valid etcd config", http.StatusOK, []byte("give me a valid etcd config"), true, false},
+		{"202 response code should return a valid etcd config", http.StatusAccepted, []byte("give me a valid etcd config"), true, false},
+		{"201 response code should return a valid etcd config", http.StatusCreated, []byte("give me a valid etcd config"), true, false},
+		{"208 response code should return an error", http.StatusAlreadyReported, []byte("give me a valid etcd config"), true, true},
+		{"400 response code should return an error", http.StatusBadRequest, []byte("give me a valid etcd config"), true, true},
+		{"should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
 	}
 
 	g := NewWithT(t)
@@ -115,12 +115,12 @@ func testGetInitializationStatus(t *testing.T, etcdConfigFilePath string) {
 		expectError             bool
 		expectedStatus          InitStatus
 	}{
-		{"test: New initialization status returned by server should result in New", http.StatusOK, []byte(New.String()), true, false, New},
-		{"test: InProgress initialization status returned by server should result in InProgress", http.StatusOK, []byte(InProgress.String()), true, false, InProgress},
-		{"test: Successful initialization status returned by server should result in Successful", http.StatusOK, []byte(Successful.String()), true, false, Successful},
-		{"test: Unknown initialization status returned by server should result in InProgress", http.StatusOK, []byte("error response"), true, false, InProgress},
-		{"test: Bad response from server should result in Unknown", http.StatusBadRequest, []byte("error response"), true, true, Unknown},
-		{"test: When sidecar base address is invalid should return an error and result in Unknown", http.StatusBadRequest, []byte("error response"), false, true, Unknown},
+		{"New initialization status returned by server should result in New", http.StatusOK, []byte(New.String()), true, false, New},
+		{"InProgress initialization status returned by server should result in InProgress", http.StatusOK, []byte(InProgress.String()), true, false, InProgress},
+		{"Successful initialization status returned by server should result in Successful", http.StatusOK, []byte(Successful.String()), true, false, Successful},
+		{"Unknown initialization status returned by server should result in InProgress", http.StatusOK, []byte("error response"), true, false, InProgress},
+		{"Bad response from server should result in Unknown", http.StatusBadRequest, []byte("error response"), true, true, Unknown},
+		{"When sidecar base address is invalid should return an error and result in Unknown", http.StatusBadRequest, []byte("error response"), false, true, Unknown},
 	}
 
 	g := NewWithT(t)
@@ -149,9 +149,9 @@ func testTriggerInitialization(t *testing.T, etcdConfigFilePath string) {
 		validSidecarBaseAddress bool
 		expectError             bool
 	}{
-		{"testutil: server returning a valid response should not result in an error", http.StatusOK, []byte("valid server response"), true, false},
-		{"testutil: server returning an error code should result in an error", http.StatusBadRequest, []byte("invalid server response"), true, true},
-		{"testutil: should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
+		{"server returning a valid response should not result in an error", http.StatusOK, []byte("valid server response"), true, false},
+		{"server returning an error code should result in an error", http.StatusBadRequest, []byte("invalid server response"), true, true},
+		{"should return an error when sidecar base address is invalid", http.StatusBadRequest, []byte("invalid server response"), false, true},
 	}
 
 	for _, entry := range table {
@@ -178,8 +178,8 @@ func testCreateSidecarClient(t *testing.T, _ string) {
 		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"testutil: return error when incorrect sidecar config (CA filepath) is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: incorrectCAFilePath}, true},
-		{"testutil: return etcd client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: etcdCACertFilePath}, false},
+		{"return error when incorrect sidecar config (CA filepath) is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: incorrectCAFilePath}, true},
+		{"return etcd client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
 	for _, entry := range table {
@@ -196,8 +196,8 @@ func TestNewDefaultClient(t *testing.T) {
 		sidecarConfig types.BackupRestoreConfig
 		expectError   bool
 	}{
-		{"testutil: return error when incorrect sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: incorrectCAFilePath}, true},
-		{"testutil: return backuprestore client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: etcdCACertFilePath}, false},
+		{"return error when incorrect sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: incorrectCAFilePath}, true},
+		{"return backuprestore client when valid sidecar config is passed", types.BackupRestoreConfig{TLSEnabled: true, CaCertBundlePath: etcdCACertFilePath}, false},
 	}
 	g := NewWithT(t)
 	defer func() {
