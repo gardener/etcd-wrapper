@@ -69,8 +69,8 @@ func testQueryEtcdReadiness(t *testing.T) {
 		querySuccess bool
 		expectStatus bool
 	}{
-		{"testutil: etcd ready status should be set to true when etcd query succeeds", true, true},
-		{"testutil: etcd ready status should be set to false when etcd query fails", false, false},
+		{"etcd ready status should be set to true when etcd query succeeds", true, true},
+		{"etcd ready status should be set to false when etcd query fails", false, false},
 	}
 
 	for _, entry := range table {
@@ -99,8 +99,8 @@ func testReadinessHandler(t *testing.T) {
 		readyStatus    bool
 		expectedStatus int
 	}{
-		{"testutil: should return http.StatusOK when etcdStatus.Ready is set to true", true, http.StatusOK},
-		{"testutil: should return http.StatusServiceUnavailable when etcdStatus.Ready is set to false", false, http.StatusServiceUnavailable},
+		{"should return http.StatusOK when etcdStatus.Ready is set to true", true, http.StatusOK},
+		{"should return http.StatusServiceUnavailable when etcdStatus.Ready is set to false", false, http.StatusServiceUnavailable},
 	}
 
 	for _, entry := range table {
@@ -131,12 +131,12 @@ func testCreateEtcdClient(t *testing.T) {
 		expectError       bool
 		endpointScheme    string
 	}{
-		{"testutil: should return valid etcd client with HTTP scheme when no certificates are passed", "", "", "", false, "http"},
-		{"testutil: should return valid etcd client with HTTPS scheme when all certificates are passed", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, "https"},
-		{"testutil: should return valid etcd client with HTTP scheme when empty certificate file path is passed", "", etcdKeyFilePath, etcdCACertFilePath, false, "http"},
-		{"testutil: should return valid etcd client with HTTP scheme when empty key file path is passed", etcdCertFilePath, "", etcdCACertFilePath, false, "http"},
-		{"testutil: should return valid etcd client with HTTP scheme when empty CA cert file path is passed", etcdCertFilePath, etcdKeyFilePath, "", false, "http"},
-		{"testutil: should return error when wrong certificate file path is passed", filepath.Join(testdataPath, "does-not-exist.crt"), etcdKeyFilePath, etcdCACertFilePath, true, ""},
+		{"should return valid etcd client with HTTP scheme when no certificates are passed", "", "", "", false, "http"},
+		{"should return valid etcd client with HTTPS scheme when all certificates are passed", etcdCertFilePath, etcdKeyFilePath, etcdCACertFilePath, false, "https"},
+		{"should return valid etcd client with HTTP scheme when empty certificate file path is passed", "", etcdKeyFilePath, etcdCACertFilePath, false, "http"},
+		{"should return valid etcd client with HTTP scheme when empty key file path is passed", etcdCertFilePath, "", etcdCACertFilePath, false, "http"},
+		{"should return valid etcd client with HTTP scheme when empty CA cert file path is passed", etcdCertFilePath, etcdKeyFilePath, "", false, "http"},
+		{"should return error when wrong certificate file path is passed", filepath.Join(testdataPath, "does-not-exist.crt"), etcdKeyFilePath, etcdCACertFilePath, true, ""},
 	}
 
 	g := NewWithT(t)
@@ -171,11 +171,11 @@ func testIsTLSEnabled(t *testing.T) {
 		trustedCAFilePath string
 		expectedResult    bool
 	}{
-		{"testutil: should return true when all files are present", "testutil/path/for/certFile", "testutil/path/for/keyFile", "testutil/path/for/trustedCAFile", true},
-		{"testutil: should return false when only certFile is not present", "", "testutil/path/for/keyFile", "testutil/path/for/trustedCAFile", false},
-		{"testutil: should return false when only keyFile is not present", "testutil/path/for/certFile", "", "testutil/path/for/trustedCAFile", false},
-		{"testutil: should return false when only trusterCAFile is not present", "testutil/path/for/certFile", "testutil/path/for/keyFile", "", false},
-		{"testutil: should return true when all files not are present", "", "", "", false},
+		{"should return true when all files are present", "testutil/path/for/certFile", "testutil/path/for/keyFile", "testutil/path/for/trustedCAFile", true},
+		{"should return false when only certFile is not present", "", "testutil/path/for/keyFile", "testutil/path/for/trustedCAFile", false},
+		{"should return false when only keyFile is not present", "testutil/path/for/certFile", "", "testutil/path/for/trustedCAFile", false},
+		{"should return false when only trusterCAFile is not present", "testutil/path/for/certFile", "testutil/path/for/keyFile", "", false},
+		{"should return true when all files not are present", "", "", "", false},
 	}
 
 	for _, entry := range table {

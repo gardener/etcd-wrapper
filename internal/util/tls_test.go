@@ -37,9 +37,9 @@ func TestCreateCACertPool(t *testing.T) {
 		trustedCAFilePath string
 		expectError       bool
 	}{
-		{"testutil: should return error when empty ca cert file path is passed", "", true},
-		{"testutil: should return error when wrong ca cert file path is passed", testdataPath + "/wrong-path", true},
-		{"testutil: should not return error when valid ca cert file path is passed", etcdCACertFilePath, false},
+		{"should return error when empty ca cert file path is passed", "", true},
+		{"should return error when wrong ca cert file path is passed", testdataPath + "/wrong-path", true},
+		{"should not return error when valid ca cert file path is passed", etcdCACertFilePath, false},
 	}
 	g := NewWithT(t)
 	defer func() {
