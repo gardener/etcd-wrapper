@@ -17,7 +17,6 @@ package cmd
 import (
 	"context"
 	"flag"
-	"syscall"
 	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/types"
@@ -77,7 +76,5 @@ func InitAndStartEtcd(ctx context.Context, cancelFn context.CancelFunc, logger *
 	if err := etcdApp.Setup(); err != nil {
 		return err
 	}
-
-	syscall.Umask(0077)
 	return etcdApp.Start()
 }
