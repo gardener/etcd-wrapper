@@ -50,17 +50,110 @@ There are two options to upload the docker image:
 
 Now you have a new container as a part of the pod. You can exec into this newly created container and freely run any bash command or any etcdctl command.
 
-### Get ETCD PKI resource paths
+### Get ETCD PKI resource paths and common commands
 
 If TLS has been enabled then you will need to provide paths to CA-Cert, Server-Cert and  Server-Key to connect to etcd process via `etcdctl`. To get the paths a convenience script is provided which will print all required PKI resource paths.
+This script also doubles up as a cheatsheet that contains some of the most common `etcdctl` commands that an operator might use along with their PKI resource paths
 
 ```bash
-> print-etcd-cert-paths
+> print-etcd-cheatsheet
  📌 ETCD PKI resource paths:
   --------------------------------------------------
-  --cacert=proc/<etcd-wrapper-process-id>/root/var/etcd/ssl/client/ca/bundle.crt
-  --cert=proc/<etcd-wrapper-process-id>/root/var/etcd/ssl/client/client/tls.crt
-  --key=proc/<etcd-wrapper-process-id>/root/var/etcd/ssl/client/client/tls.key
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key
+
+ 📌 ETCD configuration path:
+  --------------------------------------------------
+  In etcd-wrapper: proc/13/root/home/nonroot/etcd.conf.yaml
+  In etcd-backup-restore: proc/28/root/home/nonroot/etcd.conf.yaml
+
+ 📌 ETCD data directory:
+  --------------------------------------------------
+  proc/13/root/var/etcd/data
+
+ 📌 ETCD maintenance commands:
+  --------------------------------------------------
+  List all etcd members:
+  etcdctl member list -w table \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Update etcd member peer URL:
+  etcdctl member update <member-id> \
+  --peer-urls=<new-peer-url-to-set> \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Get endpoint status for the etcd cluster:
+  etcdctl endpoint -w table --cluster status \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  List all alarms:
+  etcdctl alarm list \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Disarm all alarms:
+  etcdctl alarm disarm \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Defragment etcd:
+  etcdctl defrag \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Change leadership:
+  etcdctl move-leader <new-leader-member-id> \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+ 📌 ETCD Key-Value commands:
+  --------------------------------------------------
+
+  Get key details:
+  etcdctl get <key> \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Get only value for a given key:
+  etcdctl get <key> --print-value-only \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  List all keys:
+  etcdctl get "" --prefix --keys-only \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
+
+  Put a value against a key:
+  etcdctl put <key> <value> \
+  --cacert=proc/13/root/var/etcd/ssl/client/ca/bundle.crt \
+  --cert=proc/13/root/var/etcd/ssl/client/client/tls.crt \
+  --key=proc/13/root/var/etcd/ssl/client/client/tls.key \
+  --endpoints=https://etcd-main-local:2379
 ```
 
 ### Work directory

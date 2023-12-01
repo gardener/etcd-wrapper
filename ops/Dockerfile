@@ -20,7 +20,7 @@ RUN apk update \
     && mkdir -p work \
     && chown -R 65532:65532 work
 
-COPY --chown=65532:65532 --chmod=744 ops/print-etcd-cert-paths.sh /usr/local/bin/print-etcd-cert-paths
+COPY --chown=65532:65532 --chmod=744 ops/print-etcd-cheatsheet.sh /usr/local/bin/print-etcd-cheatsheet
 COPY --from=source /usr/local/bin/etcdctl /usr/local/bin
 
 ENTRYPOINT ["/bin/bash"]
