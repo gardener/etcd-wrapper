@@ -25,7 +25,15 @@ function get_backup_restore_process_id() {
 }
 
 wrapper_pid=$(get_wrapper_process_id)
+if [[ -z "$wrapper_pid" ]]; then
+	echo "error: cannot find the process id for etcd-wrapper. Please ensure it is running"
+	exit 1
+fi
 backup_restore_pid=$(get_backup_restore_process_id)
+if [[ -z "$backup_restore_pid" ]]; then
+	echo "error: cannot find the process id for backup-restore. Please ensure it is running"
+	exit 1
+fi
 
 cat <<EOF
  📌 ETCD PKI resource paths:
