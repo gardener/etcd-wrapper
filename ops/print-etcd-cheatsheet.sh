@@ -32,80 +32,84 @@ cat <<EOF
  📌 ETCD maintenance commands:
   --------------------------------------------------
   List all etcd members:
-  etcdctl member list -w table \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl member list -w table \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Update etcd member peer URL:
-  etcdctl member update <member-id> \
-  --peer-urls=<new-peer-url-to-set> \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl member update <member-id> \\
+  --peer-urls=<new-peer-url-to-set> \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Get endpoint status for the etcd cluster:
-  etcdctl endpoint -w table --cluster status \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl endpoint -w table --cluster status \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   List all alarms:
-  etcdctl alarm list \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl alarm list \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Disarm all alarms:
-  etcdctl alarm disarm \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl alarm disarm \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Defragment etcd:
-  etcdctl defrag \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl defrag \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Change leadership:
-  //TODO aaron to try out the command and fill it here.
+  etcdctl move-leader <new-leader-member-id> \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
+  --endpoints=https://etcd-main-local:2379
 
  📌 ETCD Key-Value commands:
   --------------------------------------------------
 
   Get key details:
-  etcdctl get <key> \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl get <key> \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Get only value for a given key:
-  etcdctl get <key> --print-value-only \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl get <key> --print-value-only \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   List all keys:
-  etcdctl get "" --prefix --keys-only \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl get "" --prefix --keys-only \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
   Put a value against a key:
-  etcdctl put <key> <value> \
-  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \
-  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \
-  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \
+  etcdctl put <key> <value> \\
+  --cacert=proc/${wrapper_pid}/root/var/etcd/ssl/client/ca/bundle.crt \\
+  --cert=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.crt \\
+  --key=proc/${wrapper_pid}/root/var/etcd/ssl/client/client/tls.key \\
   --endpoints=https://etcd-main-local:2379
 
 EOF
