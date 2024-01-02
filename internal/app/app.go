@@ -16,6 +16,7 @@ package app
 
 import (
 	"context"
+	"syscall"
 	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/types"
@@ -66,6 +67,8 @@ func (a *Application) Setup() error {
 		return err
 	}
 	a.cfg = cfg
+
+	syscall.Umask(0077)
 	return nil
 }
 
