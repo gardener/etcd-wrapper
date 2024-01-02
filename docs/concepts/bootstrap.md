@@ -48,7 +48,7 @@ Initiliasation loop exits only when the status returned from `etcd-backup-sideca
 
 Start phase mainly comprises of two steps:
 
-1. Set up a readiness probe at `/readyz` where anyone can query to verify if the etcd application is running.
+1. Set up a readiness probe at `/readyz` where anyone can query to verify if the etcd application(single node cluster or multi-node cluster) is ready to accept client traffic.
 
 2. Start an embedded etcd using the fetched etcd configuration.
 
