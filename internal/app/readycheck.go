@@ -28,27 +28,6 @@ const (
 	etcdEndpointPort      = "2379"
 )
 
-// SetupReadinessProbe sets up the readiness probe for this application. It is a blocking function and therefore
-// the consumer should always call this within a go-routine unless the caller itself wants to block on this which is unlikely.
-func (a *Application) SetupReadinessProbe() {
-	// Start go routine to regularly query etcd to update its readiness status.
-	go a.queryAndUpdateEtcdReadiness()
-	// If the http server errors out then you will have to panic and that should cause the container to exit and then be restarted by kubelet.
-	if a.isTLSEnabled() {
-		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
-		err := http.ListenAndServeTLS(fmt.Sprintf(":%d", ReadyServerPort), a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile, nil)
-		if err != nil {
-			a.logger.Fatal("failed to start TLS readiness endpoint", zap.Error(err))
-		}
-	} else {
-		http.Handle("/readyz", http.HandlerFunc(a.readinessHandler))
-		err := http.ListenAndServe(fmt.Sprintf(":%d", ReadyServerPort), nil)
-		if err != nil {
-			a.logger.Fatal("failed to start readiness endpoint", zap.Error(err))
-		}
-	}
-}
-
 // queryAndUpdateEtcdReadiness periodically queries the etcd DB to check its readiness and updates the status
 // of the query into the etcdStatus struct. It stops querying when the application context is cancelled.
 func (a *Application) queryAndUpdateEtcdReadiness() {

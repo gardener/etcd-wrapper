@@ -6,6 +6,8 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"syscall"
 	"time"
 
@@ -74,9 +76,10 @@ func (a *Application) Start() error {
 	a.etcdClient = cli
 	defer a.Close()
 
-	// Setup readiness probe
-	go a.SetupReadinessProbe()
-
+	// Start go routine to regularly query etcd to update its readiness status.
+	go a.queryAndUpdateEtcdReadiness()
+	// Setup routes and start http server
+	go a.serveHTTP()
 	// Create embedded etcd and start.
 	if err = a.startEtcd(); err != nil {
 		return err
@@ -104,6 +107,9 @@ func (a *Application) Start() error {
 func (a *Application) Close() {
 	if err := a.etcdClient.Close(); err != nil {
 		a.logger.Error("failed to close etcd client", zap.Error(err))
+	}
+	if a.etcd != nil {
+		a.etcd.Close()
 	}
 	a.cancelContext()
 }
@@ -134,4 +140,29 @@ func (a *Application) startEtcd() error {
 	}
 	a.etcd = etcd
 	return nil
+}
+
+func (a *Application) serveHTTP() {
+	var err error
+	addr := fmt.Sprintf(":%d", ReadyServerPort)
+	mux := a.routes()
+	if a.isTLSEnabled() {
+		err = http.ListenAndServeTLS(addr, a.cfg.ClientTLSInfo.CertFile, a.cfg.ClientTLSInfo.KeyFile, mux)
+	} else {
+		err = http.ListenAndServe(addr, mux)
+	}
+	a.logger.Fatal("failed to start readiness endpoint", zap.Error(err))
+}
+
+func (a *Application) stopHandler(w http.ResponseWriter, _ *http.Request) {
+	a.logger.Info("received stop request, stopping etcd-wrapper...")
+	a.cancelContext()
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *Application) routes() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /readyz", a.readinessHandler)
+	mux.HandleFunc("POST /stop", a.stopHandler)
+	return mux
 }
