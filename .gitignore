@@ -29,3 +29,7 @@ hack/local-dev/config/kind.config.yaml
 
 # Go workspace file
 go.work
+
+# Ignore downloaded binaries
+/bin
+/hack/tools/bin
