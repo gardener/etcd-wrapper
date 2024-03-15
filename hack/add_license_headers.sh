@@ -7,18 +7,11 @@ set -e
 
 echo "> Adding Apache License header to all go files where it is not present"
 
-YEAR=$1
-if [[ -z "$1" ]]; then
-  cat << EOF
-Unspecified 'YEAR' argument.
-Usage: add_licence_headers.sh <YEAR>
-EOF
-  exit 1
-fi
+YEAR="$(date +%Y)"
 
 temp_file=$(mktemp)
 trap "rm -f $temp_file" EXIT
-sed "s/{YEAR}/${YEAR}/g" hack/license_boilerplate.txt > $temp_file
+sed "s/YEAR/${YEAR}/g" hack/license_boilerplate.txt > $temp_file
 
 # Uses the tool https://github.com/google/addlicense
 addlicense \
