@@ -8,7 +8,7 @@ include hack/tools.mk
 
 .PHONY: add-license-headers
 add-license-headers: $(GO_ADD_LICENSE)
-	@./hack/add_license_headers.sh ${YEAR}
+	@./hack/add_license_headers.sh
 
 .PHONY: build
 build:
