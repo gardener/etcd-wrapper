@@ -1,6 +1,6 @@
 module github.com/gardener/etcd-wrapper
 
-go 1.20
+go 1.23.1
 
 // These are test-only dependencies
 require github.com/onsi/gomega v1.27.5
@@ -59,7 +59,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
-
 
 // Ref: https://github.com/etcd-io/etcd/issues/11707
 replace google.golang.org/grpc => google.golang.org/grpc v1.27.0

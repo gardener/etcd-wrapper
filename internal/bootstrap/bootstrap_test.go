@@ -227,7 +227,7 @@ func deleteTestDir(t *testing.T, testDir string) {
 
 func getTestHttpClient(responseCode int, responseBody []byte) *http.Client {
 	return &http.Client{
-		Transport: TestRoundTripper(func(req *http.Request) *http.Response {
+		Transport: TestRoundTripper(func(_ *http.Request) *http.Response {
 			var contentLen int64
 			if responseBody != nil {
 				contentLen = int64(len(responseBody))
