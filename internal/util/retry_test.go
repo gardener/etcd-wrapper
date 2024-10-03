@@ -44,7 +44,7 @@ func TestErrorIfExceedsAttempts(t *testing.T) {
 	for _, entry := range table {
 		g := NewWithT(t)
 		logger := zaptest.NewLogger(t)
-		t.Run(entry.description, func(t *testing.T) {
+		t.Run(entry.description, func(_ *testing.T) {
 			defer clearRetryResults()
 			result := Retry(context.Background(), logger, operation, neverSucceeds, numAttempts, backOff, entry.canRetryFn)
 			g.Expect(result.Value).To(Equal(attemptFailed))

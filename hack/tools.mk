@@ -8,14 +8,11 @@ GOLANGCI_LINT              := $(TOOLS_BIN_DIR)/golangci-lint
 GO_ADD_LICENSE             := $(TOOLS_BIN_DIR)/addlicense
 
 # default tool versions
-GOLANGCI_LINT_VERSION ?= v1.51.2
+GOLANGCI_LINT_VERSION ?= v1.61.0
 GO_ADD_LICENSE_VERSION ?= latest
 
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
-$(info "TOOLS_BIN_DIR from tools.mk", $(TOOLS_BIN_DIR))
-$(info "TOOLS_DIR from tools.mk", $(TOOLS_DIR))
-$(info "PATH from tools.mk", $(PATH))
 
 #########################################
 # Tools                                 #
