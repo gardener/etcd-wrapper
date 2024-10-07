@@ -6,6 +6,7 @@ package app
 
 import (
 	"context"
+	"net/http"
 	"syscall"
 	"time"
 
@@ -30,6 +31,7 @@ type Application struct {
 	waitReadyTimeout time.Duration
 	logger           *zap.Logger
 	etcdReady        bool // should have only one actor that updates it, queryAndUpdateEtcdReadiness()
+	server           *http.Server
 }
 
 // NewApplication initializes and returns an application struct
@@ -75,7 +77,17 @@ func (a *Application) Start() error {
 	defer a.Close()
 
 	// Setup readiness probe
-	go a.SetupReadinessProbe()
+	go a.queryAndUpdateEtcdReadiness()
+
+	// start HTTP server to serve endpoints
+	go a.startHTTPServer()
+	defer func() {
+		if err := a.stopHTTPServer(); err != nil {
+			a.logger.Error("unable to stop HTTP server: %v",
+				zap.Error(err),
+			)
+		}
+	}()
 
 	// Create embedded etcd and start.
 	if err = a.startEtcd(); err != nil {
@@ -104,6 +116,9 @@ func (a *Application) Start() error {
 func (a *Application) Close() {
 	if err := a.etcdClient.Close(); err != nil {
 		a.logger.Error("failed to close etcd client", zap.Error(err))
+	}
+	if a.etcd != nil {
+		a.etcd.Close()
 	}
 	a.cancelContext()
 }
