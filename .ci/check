@@ -24,4 +24,4 @@ make check
 echo "> SAST..."
 make sast-report
 
-echo "All checks are passing"
+echo -e "\nAll checks are passing"
