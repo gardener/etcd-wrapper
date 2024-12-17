@@ -145,7 +145,7 @@ func (c *brClient) GetEtcdConfig(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if err = os.WriteFile(c.etcdConfigFilePath, etcdConfigBytes, 0644); err != nil {
+	if err = os.WriteFile(c.etcdConfigFilePath, etcdConfigBytes, 0600); err != nil {
 		return "", err
 	}
 	return c.etcdConfigFilePath, nil

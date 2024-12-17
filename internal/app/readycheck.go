@@ -146,7 +146,8 @@ func (a *Application) RegisterHandler() {
 	mux.HandleFunc("/stop", a.stopEtcdHandler)
 
 	a.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", ServerPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", ServerPort),
+		Handler:           mux,
+		ReadHeaderTimeout: etcdConnectionTimeout,
 	}
 }

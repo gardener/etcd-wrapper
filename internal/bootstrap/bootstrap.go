@@ -88,7 +88,7 @@ func CaptureExitCode(signal os.Signal, exitCodeFilePath string) error {
 		return nil
 	}
 	interruptSignal := []byte(signal.String())
-	return os.WriteFile(exitCodeFilePath, interruptSignal, 0644)
+	return os.WriteFile(exitCodeFilePath, interruptSignal, 0600)
 }
 
 // CleanupExitCode removes the `exit_code` file
@@ -116,7 +116,7 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 func determineValidationMode(exitCodeFilePath string, logger *zap.Logger) brclient.ValidationType {
 	var err error
 	if _, err = os.Stat(exitCodeFilePath); err == nil {
-		data, err := os.ReadFile(exitCodeFilePath)
+		data, err := os.ReadFile(exitCodeFilePath) // #nosec G304 -- only path passed is `DefaultExitCodeFilePath`, no user input is used.
 		if err != nil {
 			logger.Error("error in reading exitCodeFile, assuming full-validation to be done.", zap.String("exitCodeFilePath", exitCodeFilePath), zap.Error(err))
 			return brclient.FullValidation

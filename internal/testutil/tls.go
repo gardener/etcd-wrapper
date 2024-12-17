@@ -52,13 +52,13 @@ func (c *CertKeyPair) EncodeAndWrite(dir string, certFileName, keyFileName strin
 	key := x509.MarshalPKCS1PrivateKey(&c.PrivateKey)
 	pemKeyBytes := pemEncode(key, "RSA PRIVATE KEY")
 	privateKeyPath := filepath.Join(dir, keyFileName)
-	err := os.WriteFile(privateKeyPath, pemKeyBytes, os.ModePerm)
+	err := os.WriteFile(privateKeyPath, pemKeyBytes, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write private key to dir: %s: err: %v", dir, err)
 	}
 	pemCertBytes := pemEncode(c.CertBytes, "CERTIFICATE")
 	certPath := filepath.Join(dir, certFileName)
-	err = os.WriteFile(certPath, pemCertBytes, os.ModePerm)
+	err = os.WriteFile(certPath, pemCertBytes, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to write certificate to dir: %s: err: %v", dir, err)
 	}
