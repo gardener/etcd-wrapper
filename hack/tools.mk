@@ -10,7 +10,7 @@ GO_ADD_LICENSE             := $(TOOLS_BIN_DIR)/addlicense
 
 # default tool versions
 GOLANGCI_LINT_VERSION ?= v1.61.0
-GOSEC_VERSION ?= v2.20.0
+GOSEC_VERSION ?= v2.21.4
 GO_ADD_LICENSE_VERSION ?= latest
 
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
