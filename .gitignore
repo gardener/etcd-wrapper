@@ -33,3 +33,6 @@ go.work
 # Ignore downloaded binaries
 /bin
 /hack/tools/bin
+
+# gosec
+gosec-report.sarif

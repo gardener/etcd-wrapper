@@ -19,4 +19,9 @@ source "${SOURCE_PATH}/.ci/common.sh"
 
 echo "> Check..."
 make check
-echo "All checks are passing"
+
+# Run Static Application Security Testing (SAST) using gosec
+echo "> SAST..."
+make sast-report
+
+echo -e "\nAll checks are passing"

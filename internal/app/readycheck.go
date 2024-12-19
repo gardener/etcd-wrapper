@@ -21,11 +21,12 @@ import (
 
 const (
 	// ServerPort is the port number for the http server of etcd wrapper
-	ServerPort            = int64(9095)
-	etcdConnectionTimeout = 5 * time.Second
-	etcdGetTimeout        = 5 * time.Second
-	etcdQueryInterval     = 2 * time.Second
-	etcdEndpointPort      = "2379"
+	ServerPort                   = int64(9095)
+	etcdEndpointPort             = "2379"
+	etcdWrapperReadHeaderTimeout = 5 * time.Second
+	etcdConnectionTimeout        = 5 * time.Second
+	etcdGetTimeout               = 5 * time.Second
+	etcdQueryInterval            = 2 * time.Second
 )
 
 // queryAndUpdateEtcdReadiness periodically queries the etcd DB to check its readiness and updates the status
@@ -146,7 +147,8 @@ func (a *Application) RegisterHandler() {
 	mux.HandleFunc("/stop", a.stopEtcdHandler)
 
 	a.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", ServerPort),
-		Handler: mux,
+		Addr:              fmt.Sprintf(":%d", ServerPort),
+		Handler:           mux,
+		ReadHeaderTimeout: etcdWrapperReadHeaderTimeout,
 	}
 }

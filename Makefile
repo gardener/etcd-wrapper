@@ -30,3 +30,11 @@ revendor:
 .PHONY: check
 check: $(GOLANGCI_LINT)
 	@./hack/check.sh --golangci-lint-config=./.golangci.yaml ./internal/...
+
+.PHONY: sast
+sast: $(GOSEC)
+	@./hack/sast.sh
+
+.PHONY: sast-report
+sast-report: $(GOSEC)
+	@./hack/sast.sh --gosec-report true
