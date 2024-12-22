@@ -1,4 +1,4 @@
-FROM golang:1.23.1 as builder
+FROM golang:1.23.4 as builder
 WORKDIR /go/src/github.com/gardener/etcd-wrapper
 COPY . .
 
