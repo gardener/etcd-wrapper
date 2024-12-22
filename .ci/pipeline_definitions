@@ -9,8 +9,7 @@ etcd-wrapper:
               we use gosec for sast scanning. See attached log.
     traits:
       version:
-        preprocess:
-          'inject-commit-hash'
+        preprocess: 'inject-commit-hash'
         inject_effective_version: true
       component_descriptor:
         ocm_repository: europe-docker.pkg.dev/gardener-project/snapshots
@@ -37,13 +36,17 @@ etcd-wrapper:
                 confidentiality_requirement: 'high'
                 integrity_requirement: 'high'
                 availability_requirement: 'high'
+            - name: 'cloud.gardener.cnudie/responsibles'
+              value:
+                - type: 'githubTeam'
+                  teamname: 'gardener/etcd-druid-maintainers'
     steps:
       check:
-        image: 'golang:1.23.1'
+        image: 'golang:1.23.4'
       test:
-        image: 'golang:1.23.1'
+        image: 'golang:1.23.4'
       build:
-        image: 'golang:1.23.1'
+        image: 'golang:1.23.4'
         output_dir: 'binary'
 
   jobs:
