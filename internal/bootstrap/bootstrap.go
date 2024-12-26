@@ -115,6 +115,14 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 
 func determineValidationMode(exitCodeFilePath string, logger *zap.Logger) brclient.ValidationType {
 	var err error
+
+	// remove legacy validation_marker file created by etcd-custom-image
+	if _, err = os.Stat(types.ValidationMarkerFilePath); err == nil {
+		if err = os.Remove(types.ValidationMarkerFilePath); err != nil {
+			logger.Error("error in removing validation_marker file", zap.String("validationMarkerFilePath", types.ValidationMarkerFilePath), zap.Error(err))
+		}
+	}
+
 	if _, err = os.Stat(exitCodeFilePath); err == nil {
 		data, err := os.ReadFile(exitCodeFilePath) // #nosec G304 -- only path passed is `DefaultExitCodeFilePath`, no user input is used.
 		if err != nil {
