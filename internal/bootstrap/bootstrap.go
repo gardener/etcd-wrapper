@@ -117,10 +117,8 @@ func determineValidationMode(exitCodeFilePath string, logger *zap.Logger) brclie
 	var err error
 
 	// remove legacy validation_marker file created by etcd-custom-image
-	if _, err = os.Stat(types.ValidationMarkerFilePath); err == nil {
-		if err = os.Remove(types.ValidationMarkerFilePath); err != nil {
-			logger.Error("error in removing validation_marker file", zap.String("validationMarkerFilePath", types.ValidationMarkerFilePath), zap.Error(err))
-		}
+	if err = CleanupExitCode(types.ValidationMarkerFilePath); err != nil {
+		logger.Error("error in removing validation_marker file", zap.String("validationMarkerFilePath", types.ValidationMarkerFilePath), zap.Error(err))
 	}
 
 	if _, err = os.Stat(exitCodeFilePath); err == nil {
