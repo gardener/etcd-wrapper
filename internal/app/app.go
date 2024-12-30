@@ -93,7 +93,7 @@ func (a *Application) Start() error {
 	if err = a.startEtcd(); err != nil {
 		return err
 	}
-	// Delete validation marker after etcd starts successfully
+	// Delete exit code file after etcd starts successfully
 	if err = bootstrap.CleanupExitCode(types.DefaultExitCodeFilePath); err != nil {
 		a.logger.Warn("failed to clean-up last captured exit code", zap.Error(err))
 	}
