@@ -69,6 +69,7 @@ etcd-wrapper:
           dockerimages:
             etcd-wrapper:
               image: europe-docker.pkg.dev/gardener-project/releases/gardener/etcd-wrapper
+              tag_as_latest: True
         release:
           nextversion: 'bump_minor'
           assets:
