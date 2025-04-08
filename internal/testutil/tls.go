@@ -150,6 +150,6 @@ func createCertTemplate(commonName string) (*x509.Certificate, error) {
 }
 
 func generateSerialNumber() (*big.Int, error) {
-	max := new(big.Int).Lsh(big.NewInt(1), 128)
-	return rand.Int(rand.Reader, max)
+	maxNo := new(big.Int).Lsh(big.NewInt(1), 128)
+	return rand.Int(rand.Reader, maxNo)
 }
