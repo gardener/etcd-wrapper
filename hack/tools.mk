@@ -9,12 +9,16 @@ GOSEC                      := $(TOOLS_BIN_DIR)/gosec
 GO_ADD_LICENSE             := $(TOOLS_BIN_DIR)/addlicense
 
 # default tool versions
-GOLANGCI_LINT_VERSION ?= v1.61.0
-GOSEC_VERSION ?= v2.21.4
+GOLANGCI_LINT_VERSION ?= v1.64.8
+GOSEC_VERSION ?= v2.22.2
 GO_ADD_LICENSE_VERSION ?= latest
 
 export TOOLS_BIN_DIR := $(TOOLS_BIN_DIR)
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
+
+.PHONY: clean-tools-bin
+clean-tools-bin:
+	rm -rf $(TOOLS_BIN_DIR)/*
 
 #########################################
 # Tools                                 #
