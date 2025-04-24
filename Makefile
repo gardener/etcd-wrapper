@@ -3,6 +3,10 @@
 #########################################
 
 BIN_DIR := bin
+VERSION             := $(shell cat VERSION)
+IMAGE_PATH          := europe-docker.pkg.dev/gardener-project/snapshots/gardener/etcd-wrapper
+IMG                 := $(IMAGE_PATH):$(VERSION)
+PLATFORM            ?= $(shell docker info --format '{{.OSType}}/{{.Architecture}}')
 
 include hack/tools.mk
 
@@ -13,6 +17,14 @@ add-license-headers: $(GO_ADD_LICENSE)
 .PHONY: build
 build:
 	@./hack/build.sh
+
+.PHONY: docker-build
+docker-build:
+	@docker buildx build --platform=$(PLATFORM) -t $(IMG) -f Dockerfile --rm .
+
+.PHONY: docker-push
+docker-push:
+	@docker push $(IMG)
 
 .PHONY: clean
 clean:
