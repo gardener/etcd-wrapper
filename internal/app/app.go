@@ -6,6 +6,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"syscall"
 	"time"
@@ -88,6 +89,12 @@ func (a *Application) Start() error {
 			)
 		}
 	}()
+
+	// Change file permissions for files previously created without umask 0077
+	// TODO (shreyas-s-rao): remove this temporary code in etcd-wrapper v0.8.0
+	if err = bootstrap.ChangeFilePermissions(a.cfg.Dir, 0640); err != nil {
+		return fmt.Errorf("failed to change file permissions: %w", err)
+	}
 
 	// Create embedded etcd and start.
 	if err = a.startEtcd(); err != nil {

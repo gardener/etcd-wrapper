@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -80,6 +81,19 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 	}
 	i.logger.Info("Etcd initialization succeeded")
 	return i.tryGetEtcdConfig(ctx, defaultBackupRestoreMaxRetries, defaultBackOffBetweenRetries)
+}
+
+// ChangeFilePermissions changes the file permissions of all files in the given directory and its subdirectories recursively.
+func ChangeFilePermissions(dir string, mode os.FileMode) error {
+	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		return os.Chmod(path, mode)
+	})
 }
 
 // CaptureExitCode captures the exit signal into a file `exit_code`
