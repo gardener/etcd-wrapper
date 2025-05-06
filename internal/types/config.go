@@ -18,6 +18,8 @@ type Config struct {
 	BackupRestore BackupRestoreConfig
 	// EtcdClientTLS is the TLS configuration required to configure a client when TLS is enabled when interacting with the embedded etcd.
 	EtcdClientTLS EtcdClientTLSConfig
+	// EtcdClientPort is port when talking to etcd.
+	EtcdClientPort int
 }
 
 // EtcdClientTLSConfig holds the TLS configuration to configure a etcd client.
