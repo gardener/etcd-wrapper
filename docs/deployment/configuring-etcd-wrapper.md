@@ -8,6 +8,7 @@
 
 | Flag Name                          | Type          | Required                                                                                                                                                          | Default Value | Description                                                                                                                                                                                |
 | ---------------------------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| etcd-wrapper-port                  | int           | No                                                                                                                                                                | 9095          | Port used by etcd-wrapper to expose the server.                                                                                                                                            |                                                                                                                                        |
 | backup-restore-tls-enabled         | bool          | No                                                                                                                                                                | false         | If this is set to true then it will look for certificates to configure a HTTP client which will use TLS to communicate to the backup-restore container                                     |
 | backup-restore-host-port           | string        | No                                                                                                                                                                | :8080         | Host address and port of the backup-restore  with which this container will interact during initialization. Should be of the format <host>:<port> and ***must not*** include the protocol. |
 | backup-restore-ca-cert-bundle-path | string        | Yes if `backup-restore-tls-enabled` is set to true                                                                                                                | ""            | Path of CA cert bundle (This will be used when TLS is enabled via tls-enabled flag.                                                                                                        |
@@ -47,6 +48,7 @@ spec:
       containers:
       - args:
         - start-etcd 
+        - --etcd-wrapper-port=9095
         - --backup-restore-tls-enabled=true
         - --backup-restore-host-port=etcd-main-local:8080
         - --etcd-server-name=etcd-main-local

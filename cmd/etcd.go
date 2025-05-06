@@ -24,6 +24,8 @@ var (
 and starts an embedded etcd which is by default exposed on port 2379 for client traffic.
 
 Flags:
+	--etcd-wrapper-port
+		Port used by etcd-wrapper to expose the server. Default: 9095
 	--backup-restore-tls-enabled
 		Enables TLS for communicating with backup-restore if its value is true. It is disabled by default.
 	--backup-restore-host-port
@@ -50,6 +52,7 @@ Flags:
 
 // AddEtcdFlags adds flags from the parsed FlagSet into application structs
 func AddEtcdFlags(fs *flag.FlagSet) {
+	fs.IntVar(&config.EtcdWrapperPort, "etcd-wrapper-port", 9095, "Port used by etcd-wrapper to expose the server. Default: 9095")
 	fs.BoolVar(&config.BackupRestore.TLSEnabled, "backup-restore-tls-enabled", types.DefaultBackupRestoreTLSEnabled, "Enables TLS for communicating with backup-restore container")
 	fs.StringVar(&config.BackupRestore.HostPort, "backup-restore-host-port", types.DefaultBackupRestoreHostPort, "Host and Port to be used to connect to the backup-restore container")
 	fs.StringVar(&config.BackupRestore.CaCertBundlePath, "backup-restore-ca-cert-bundle-path", "", "File path of CA cert bundle to help establish TLS communication with backup-restore container")

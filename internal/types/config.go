@@ -20,6 +20,8 @@ type Config struct {
 	EtcdClientTLS EtcdClientTLSConfig
 	// EtcdClientPort is port when talking to etcd.
 	EtcdClientPort int
+	// EtcdWrapperPort is the server port for etcd-wrapper.
+	EtcdWrapperPort int
 }
 
 // EtcdClientTLSConfig holds the TLS configuration to configure a etcd client.
