@@ -7,6 +7,7 @@ package bootstrap
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -85,14 +86,29 @@ func (i *initializer) Run(ctx context.Context) (*embed.Config, error) {
 
 // ChangeFilePermissions changes the file permissions of all files in the given directory and its subdirectories recursively.
 func ChangeFilePermissions(dir string, mode os.FileMode) error {
+	info, err := os.Stat(dir)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		return fmt.Errorf("error stating directory %s: %v", dir, err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("path %s is not a directory", dir)
+	}
+
 	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("error walking the path %q: %v", path, err)
 		}
 		if d.IsDir() {
 			return nil
 		}
-		return os.Chmod(path, mode)
+		if err = os.Chmod(path, mode); err != nil {
+			return fmt.Errorf("error changing file permissions for %q: %v", path, err)
+		}
+		return nil
 	})
 }
 
