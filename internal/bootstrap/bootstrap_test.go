@@ -29,6 +29,89 @@ func (f TestRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req), nil
 }
 
+func TestChangeFilePermissions(t *testing.T) {
+	table := []struct {
+		description string
+		setup       func(testDir string) string
+		mode        os.FileMode
+		expectError bool
+		verify      func(t *testing.T, testDir string, mode os.FileMode)
+	}{
+		{
+			description: "change permissions of files in a directory recursively",
+			setup: func(testDir string) string {
+				filePath := filepath.Join(testDir, "testfile")
+				err := os.WriteFile(filePath, []byte("test"), 0644)
+				if err != nil {
+					t.Fatalf("failed to create test file: %v", err)
+				}
+				subDirPath := filepath.Join(testDir, "subdir")
+				err = os.Mkdir(subDirPath, 0755)
+				if err != nil {
+					t.Fatalf("failed to create test directory: %v", err)
+				}
+				subFilePath := filepath.Join(subDirPath, "subfile")
+				err = os.WriteFile(subFilePath, []byte("test"), 0644)
+				if err != nil {
+					t.Fatalf("failed to create test file: %v", err)
+				}
+				return testDir
+			},
+			mode:        0640,
+			expectError: false,
+			verify: func(t *testing.T, testDir string, mode os.FileMode) {
+				g := NewWithT(t)
+				paths := []string{
+					filepath.Join(testDir, "testfile"),
+					filepath.Join(testDir, "subdir", "subfile"),
+				}
+				for _, path := range paths {
+					info, err := os.Stat(path)
+					g.Expect(err).To(BeNil())
+					g.Expect(info.Mode().Perm()).To(Equal(mode))
+				}
+			},
+		},
+		{
+			description: "return nil error for non-existent directory",
+			setup: func(testDir string) string {
+				return filepath.Join(testDir, "nonexistent/path")
+			},
+			mode:        0640,
+			expectError: false,
+			verify:      func(_ *testing.T, _ string, _ os.FileMode) {},
+		},
+		{
+			description: "return error when path is a file, not a directory",
+			setup: func(testDir string) string {
+				filePath := filepath.Join(testDir, "testfile")
+				err := os.WriteFile(filePath, []byte("test"), 0644)
+				if err != nil {
+					t.Fatalf("failed to create test file: %v", err)
+				}
+				return filePath
+			},
+			mode:        0640,
+			expectError: true,
+			verify:      func(_ *testing.T, _ string, _ os.FileMode) {},
+		},
+	}
+
+	for _, entry := range table {
+		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
+			testDir := createTestDir(t)
+			defer deleteTestDir(t, testDir)
+
+			path := entry.setup(testDir)
+			err := ChangeFilePermissions(path, entry.mode)
+			g.Expect(err != nil).To(Equal(entry.expectError))
+
+			entry.verify(t, testDir, entry.mode)
+		})
+	}
+}
+
 func TestCleanupExitCodeFile(t *testing.T) {
 	table := []struct {
 		description string
