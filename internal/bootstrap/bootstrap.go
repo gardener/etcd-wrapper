@@ -91,7 +91,7 @@ func ChangeFilePermissions(dir string, mode os.FileMode) error {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
 		}
-		return fmt.Errorf("error stating directory %s: %v", dir, err)
+		return fmt.Errorf("error stating directory %s: %w", dir, err)
 	}
 
 	if !info.IsDir() {
@@ -100,13 +100,13 @@ func ChangeFilePermissions(dir string, mode os.FileMode) error {
 
 	return filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
-			return fmt.Errorf("error walking the path %q: %v", path, err)
+			return fmt.Errorf("error walking the path %q: %w", path, err)
 		}
 		if d.IsDir() {
 			return nil
 		}
 		if err = os.Chmod(path, mode); err != nil {
-			return fmt.Errorf("error changing file permissions for %q: %v", path, err)
+			return fmt.Errorf("error changing file permissions for %q: %w", path, err)
 		}
 		return nil
 	})
