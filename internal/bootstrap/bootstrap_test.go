@@ -57,7 +57,7 @@ func TestChangeFilePermissions(t *testing.T) {
 				}
 				return testDir
 			},
-			mode:        0640,
+			mode:        0600,
 			expectError: false,
 			verify: func(t *testing.T, testDir string, mode os.FileMode) {
 				g := NewWithT(t)
@@ -77,7 +77,7 @@ func TestChangeFilePermissions(t *testing.T) {
 			setup: func(testDir string) string {
 				return filepath.Join(testDir, "nonexistent/path")
 			},
-			mode:        0640,
+			mode:        0600,
 			expectError: false,
 			verify:      func(_ *testing.T, _ string, _ os.FileMode) {},
 		},
@@ -91,7 +91,7 @@ func TestChangeFilePermissions(t *testing.T) {
 				}
 				return filePath
 			},
-			mode:        0640,
+			mode:        0600,
 			expectError: true,
 			verify:      func(_ *testing.T, _ string, _ os.FileMode) {},
 		},
