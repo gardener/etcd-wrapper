@@ -42,11 +42,11 @@ etcd-wrapper:
                   teamname: 'gardener/etcd-druid-maintainers'
     steps:
       check:
-        image: 'golang:1.24.2'
+        image: 'golang:1.24.4'
       test:
-        image: 'golang:1.24.2'
+        image: 'golang:1.24.4'
       build:
-        image: 'golang:1.24.2'
+        image: 'golang:1.24.4'
         output_dir: 'binary'
 
   jobs:
