@@ -3,7 +3,7 @@
 <img src="logo/etcd-wrapper-logo.png" style="width:300px">
 
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/etcd-wrapper)](https://api.reuse.software/info/github.com/gardener/etcd-wrapper)
-[![CI Build status](https://concourse.ci.gardener.cloud/api/v1/teams/gardener/pipelines/etcd-wrapper-main/jobs/main-head-update-job/badge)](https://concourse.ci.gardener.cloud/api/v1/teams/gardener/pipelines/etcd-wrapper-main/jobs/main-head-update-job)
+[![Build](https://github.com/gardener/etcd-wrapper/actions/workflows/non-release.yaml/badge.svg)](https://github.com/gardener/etcd-wrapper/actions/workflows/non-release.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/gardener/etcd-wrapper)](https://goreportcard.com/report/github.com/gardener/etcd-wrapper)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
