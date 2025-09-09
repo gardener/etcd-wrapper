@@ -1,6 +1,6 @@
 # Local KIND Cluster based ETCD Cluster Setup
 
-To make development and testing of `etcd-wrapper` easier we also provide [scripts](../hack/local-dev) which will help you generate and deploy all required resources to a locally started [KIND](https://kind.sigs.k8s.io/) cluster.
+To make development and testing of `etcd-wrapper` easier we also provide [scripts](../../hack/local-dev) which will help you generate and deploy all required resources to a locally started [KIND](https://kind.sigs.k8s.io/) cluster.
 
 ## Setup KIND cluster
 

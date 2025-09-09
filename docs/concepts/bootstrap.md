@@ -36,7 +36,7 @@ If initialisation status is `New` then it does the following:
 
 * It sleeps for some time to prevent a busy loop and goes back to Step-1.
 
-> For more details about the validation modes check [here](https://github.com/gardener/etcd-backup-restore/blob/master/doc/proposals/validation.md).
+> For more details about the validation modes check [here](https://github.com/gardener/etcd-backup-restore/blob/master/docs/proposals/validation.md).
 
 If initiliasation is either `Progress` or `Failed` it will sleep for some time to prevent busy loop and then goes back to Step-1 
 
