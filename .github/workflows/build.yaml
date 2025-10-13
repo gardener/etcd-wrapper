@@ -64,7 +64,23 @@ jobs:
       - name: run-test
         run: |
           set -eu
-          .ci/test
+          mkdir /tmp/blobs.d
+          .ci/test |& tee /tmp/blobs.d/test-results.txt
+          tar czf /tmp/blobs.d/test-results.tar.gz -C /tmp/blobs.d test-results.txt
+      - name: add-test-results-to-component-descriptor
+        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@master
+        with:
+          blobs-directory: /tmp/blobs.d
+          ocm-resources: |
+            name: test-results
+            relation: local
+            access:
+              type: localBlob
+              localReference: test-results.tar.gz
+            labels:
+              - name: gardener.cloud/purposes
+                value:
+                  - test
 
   check:
     runs-on: ubuntu-latest
