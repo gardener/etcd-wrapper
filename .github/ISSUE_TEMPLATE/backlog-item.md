@@ -5,6 +5,8 @@ labels: kind/epic
 
 ---
 
+<!-- Please ensure that you do not include company internal information. -->
+
 # How to categorize this issue?
 /kind enhancement
 
