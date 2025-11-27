@@ -7,6 +7,8 @@ assignees: ''
 
 ---
 
+<!-- Please ensure that you do not include company internal information. -->
+
 **Describe the bug:**
 A clear and concise description of what the bug is.
 
