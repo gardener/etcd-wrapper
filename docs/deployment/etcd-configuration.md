@@ -1,6 +1,6 @@
 # Configuring ETCD
 
-There are several configuration parameters that needs to be configured to run ETCD. For a complete list of configuration options refer [official-documentation](https://etcd.io/docs/v3.4/op-guide/configuration/). To provide configuration to start the ETCD process one must create a `ConfigMap` which needs be mounted to the `backup-restore` container. `etcd-wrapper` will fetch the configuration via an internal HTTP(s) endpoint exposed out of the `backup-restore` container.
+There are several configuration parameters that needs to be configured to run ETCD. For a complete list of configuration options refer [official-documentation](https://etcd.io/docs/v3.5/op-guide/configuration/). To provide configuration to start the ETCD process one must create a `ConfigMap` which needs be mounted to the `backup-restore` container. `etcd-wrapper` will fetch the configuration via an internal HTTP(s) endpoint exposed out of the `backup-restore` container.
 
 ## Example ConfigMap
 
