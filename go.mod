@@ -1,6 +1,6 @@
 module github.com/gardener/etcd-wrapper
 
-go 1.24.0
+go 1.25.0
 
 // These are test-only dependencies
 require github.com/onsi/gomega v1.37.0
