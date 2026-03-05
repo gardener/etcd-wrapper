@@ -3,8 +3,8 @@
 
 #This ops pod is to be used as an ephemeral container while debugging etcd-wrapper
 
-FROM gcr.io/etcd-development/etcd:v3.5.26 as source-amd64
-FROM gcr.io/etcd-development/etcd:v3.5.26-arm64 as source-arm64
+FROM gcr.io/etcd-development/etcd:v3.5.27 as source-amd64
+FROM gcr.io/etcd-development/etcd:v3.5.27-arm64 as source-arm64
 
 FROM source-$TARGETARCH as source
 

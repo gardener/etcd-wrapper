@@ -20,8 +20,6 @@ data:
     # Number of committed transactions to trigger a snapshot to disk.
     snapshot-count: 75000
 
-    # Accept etcd V2 client requests
-    enable-v2: false
     # Raise alarms when backend size exceeds the given quota. 0 means use the
     # default quota.
     quota-backend-bytes: 8589934592
