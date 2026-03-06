@@ -18,7 +18,7 @@ import (
 	"github.com/gardener/etcd-wrapper/internal/testutil"
 	"github.com/gardener/etcd-wrapper/internal/types"
 
-	"go.etcd.io/etcd/embed"
+	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 
 	. "github.com/onsi/gomega"
