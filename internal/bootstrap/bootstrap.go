@@ -20,6 +20,7 @@ import (
 
 	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
+	sigsyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -140,7 +141,42 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 	}
 	etcdConfigFilePath := opResult.Value
 	i.logger.Info("Fetched and written etcd configuration", zap.String("path", etcdConfigFilePath))
-	return embed.ConfigFromFile(etcdConfigFilePath)
+	cfg, err := embed.ConfigFromFile(etcdConfigFilePath)
+	if err != nil {
+		return nil, err
+	}
+	if err := applyPeerSkipClientSANVerify(etcdConfigFilePath, cfg, i.logger); err != nil {
+		return nil, fmt.Errorf("failed to apply peer-transport-security.skip-client-san-verification: %w", err)
+	}
+	return cfg, nil
+}
+
+// etcdConfigWithPeerSkipSAN parses only the nested
+// peer-transport-security.skip-client-san-verification key from the etcd config
+// YAML written by etcd-druid. The key path matches etcd v3.6's native
+// securityConfig YAML layout.
+type etcdConfigWithPeerSkipSAN struct {
+	PeerTransportSecurity struct {
+		SkipClientSANVerification bool `json:"skip-client-san-verification"`
+	} `json:"peer-transport-security"`
+}
+
+// applyPeerSkipClientSANVerify reads the etcd config file at configFilePath and
+// sets cfg.PeerTLSInfo.SkipClientSANVerify to the value of the nested
+// peer-transport-security.skip-client-san-verification key. An absent key is
+// treated as false.
+func applyPeerSkipClientSANVerify(configFilePath string, cfg *embed.Config, logger *zap.Logger) error {
+	data, err := os.ReadFile(configFilePath) // #nosec G304 -- configFilePath is from trusted backup-restore service
+	if err != nil {
+		return fmt.Errorf("failed to read etcd config file: %w", err)
+	}
+	parsed := etcdConfigWithPeerSkipSAN{}
+	if err := sigsyaml.Unmarshal(data, &parsed); err != nil {
+		return fmt.Errorf("failed to unmarshal etcd config for peer-transport-security.skip-client-san-verification: %w", err)
+	}
+	cfg.PeerTLSInfo.SkipClientSANVerify = parsed.PeerTransportSecurity.SkipClientSANVerification
+	logger.Info("Applied peer skip-client-san-verification on PeerTLSInfo", zap.Bool("skipClientSANVerify", cfg.PeerTLSInfo.SkipClientSANVerify))
+	return nil
 }
 
 func determineValidationMode(exitCodeFilePath string, logger *zap.Logger) brclient.ValidationType {

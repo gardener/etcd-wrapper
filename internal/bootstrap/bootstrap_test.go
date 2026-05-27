@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/gardener/etcd-wrapper/internal/types"
+	"go.etcd.io/etcd/server/v3/embed"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
@@ -331,4 +332,130 @@ func createSidecarConfig(tlsEnabled bool, hostPort string, caCertBundlePath stri
 		TLSEnabled:       tlsEnabled,
 		CaCertBundlePath: caCertBundlePath,
 	}
+}
+
+func TestApplyPeerSkipClientSANVerify(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	table := []struct {
+		description         string
+		configYAML          string
+		expectSkipSANVerify bool
+	}{
+		{
+			description:         "flag true: SkipClientSANVerify becomes true",
+			configYAML:          "name: test\npeer-transport-security:\n  skip-client-san-verification: true\n",
+			expectSkipSANVerify: true,
+		},
+		{
+			description:         "flag false: SkipClientSANVerify stays false",
+			configYAML:          "name: test\npeer-transport-security:\n  skip-client-san-verification: false\n",
+			expectSkipSANVerify: false,
+		},
+		{
+			description:         "flag absent under peer-transport-security: SkipClientSANVerify stays false",
+			configYAML:          "name: test\npeer-transport-security:\n  cert-file: /etc/foo.crt\n",
+			expectSkipSANVerify: false,
+		},
+		{
+			description:         "peer-transport-security absent: SkipClientSANVerify stays false",
+			configYAML:          "name: test\n",
+			expectSkipSANVerify: false,
+		},
+		{
+			description:         "empty config: SkipClientSANVerify stays false",
+			configYAML:          "",
+			expectSkipSANVerify: false,
+		},
+	}
+
+	for _, entry := range table {
+		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
+			testDir := createTestDir(t)
+			defer deleteTestDir(t, testDir)
+
+			configFilePath := filepath.Join(testDir, "etcd.conf.yaml")
+			err := os.WriteFile(configFilePath, []byte(entry.configYAML), 0600)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			cfg := embed.NewConfig()
+			err = applyPeerSkipClientSANVerify(configFilePath, cfg, logger)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(cfg.PeerTLSInfo.SkipClientSANVerify).To(Equal(entry.expectSkipSANVerify))
+		})
+	}
+}
+
+func TestApplyPeerSkipClientSANVerifyOverwrites(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	table := []struct {
+		description         string
+		preset              bool
+		configYAML          string
+		expectSkipSANVerify bool
+	}{
+		{
+			description:         "preset true, flag false: lowered to false",
+			preset:              true,
+			configYAML:          "name: test\npeer-transport-security:\n  skip-client-san-verification: false\n",
+			expectSkipSANVerify: false,
+		},
+		{
+			description:         "preset true, flag absent: lowered to false",
+			preset:              true,
+			configYAML:          "name: test\n",
+			expectSkipSANVerify: false,
+		},
+		{
+			description:         "preset false, flag true: raised to true",
+			preset:              false,
+			configYAML:          "name: test\npeer-transport-security:\n  skip-client-san-verification: true\n",
+			expectSkipSANVerify: true,
+		},
+	}
+
+	for _, entry := range table {
+		t.Run(entry.description, func(t *testing.T) {
+			g := NewWithT(t)
+			testDir := createTestDir(t)
+			defer deleteTestDir(t, testDir)
+
+			configFilePath := filepath.Join(testDir, "etcd.conf.yaml")
+			err := os.WriteFile(configFilePath, []byte(entry.configYAML), 0600)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			cfg := embed.NewConfig()
+			cfg.PeerTLSInfo.SkipClientSANVerify = entry.preset
+			err = applyPeerSkipClientSANVerify(configFilePath, cfg, logger)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(cfg.PeerTLSInfo.SkipClientSANVerify).To(Equal(entry.expectSkipSANVerify))
+		})
+	}
+}
+
+func TestApplyPeerSkipClientSANVerifyWithMissingFile(t *testing.T) {
+	g := NewWithT(t)
+	logger := zaptest.NewLogger(t)
+	cfg := embed.NewConfig()
+
+	err := applyPeerSkipClientSANVerify("/nonexistent/path/etcd.conf.yaml", cfg, logger)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("failed to read etcd config file"))
+}
+
+func TestApplyPeerSkipClientSANVerifyWithMalformedYAML(t *testing.T) {
+	g := NewWithT(t)
+	logger := zaptest.NewLogger(t)
+	testDir := createTestDir(t)
+	defer deleteTestDir(t, testDir)
+
+	configFilePath := filepath.Join(testDir, "etcd.conf.yaml")
+	// Malformed YAML — unterminated flow sequence after a tab indent.
+	err := os.WriteFile(configFilePath, []byte("peer-transport-security:\n\t\tinvalid: [unterminated"), 0600)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	cfg := embed.NewConfig()
+	err = applyPeerSkipClientSANVerify(configFilePath, cfg, logger)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("failed to unmarshal etcd config for peer-transport-security.skip-client-san-verification"))
 }
