@@ -9,6 +9,7 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.27
 	go.etcd.io/etcd/server/v3 v3.5.27
 	go.uber.org/zap v1.27.1
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -75,5 +76,4 @@ require (
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	sigs.k8s.io/yaml v1.6.0 // indirect
 )
