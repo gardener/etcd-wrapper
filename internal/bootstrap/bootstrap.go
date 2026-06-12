@@ -151,10 +151,8 @@ func (i *initializer) tryGetEtcdConfig(ctx context.Context, maxRetries int, inte
 	return cfg, nil
 }
 
-// etcdConfigWithPeerSkipSAN parses only the nested
-// peer-transport-security.skip-client-san-verification key from the etcd config
-// YAML written by etcd-druid. The key path matches etcd v3.6's native
-// securityConfig YAML layout.
+// etcdConfigWithPeerSkipSAN parses only the nested "peer-transport-security.skip-client-san-verification"
+// key present in the etcd config-map template passed by etcd-druid.
 type etcdConfigWithPeerSkipSAN struct {
 	PeerTransportSecurity struct {
 		SkipClientSANVerification bool `json:"skip-client-san-verification"`
@@ -165,6 +163,11 @@ type etcdConfigWithPeerSkipSAN struct {
 // sets cfg.PeerTLSInfo.SkipClientSANVerify to the value of the nested
 // peer-transport-security.skip-client-san-verification key. An absent key is
 // treated as false.
+//
+// TODO(@seshachalam-yv): remove this handling once the project moves to etcd
+// v3.6.x — etcd v3.6 honors peer-transport-security.skip-client-san-verification
+// natively in its config file, so embed.ConfigFromFile will populate
+// cfg.PeerTLSInfo.SkipClientSANVerify and this shim is no longer needed.
 func applyPeerSkipClientSANVerify(configFilePath string, cfg *embed.Config, logger *zap.Logger) error {
 	data, err := os.ReadFile(configFilePath) // #nosec G304 -- configFilePath is from trusted backup-restore service
 	if err != nil {
@@ -172,10 +175,12 @@ func applyPeerSkipClientSANVerify(configFilePath string, cfg *embed.Config, logg
 	}
 	parsed := etcdConfigWithPeerSkipSAN{}
 	if err := sigsyaml.Unmarshal(data, &parsed); err != nil {
-		return fmt.Errorf("failed to unmarshal etcd config for peer-transport-security.skip-client-san-verification: %w", err)
+		return fmt.Errorf("failed to parse etcd config: %w", err)
 	}
 	cfg.PeerTLSInfo.SkipClientSANVerify = parsed.PeerTransportSecurity.SkipClientSANVerification
-	logger.Info("Applied peer skip-client-san-verification on PeerTLSInfo", zap.Bool("skipClientSANVerify", cfg.PeerTLSInfo.SkipClientSANVerify))
+	if cfg.PeerTLSInfo.SkipClientSANVerify {
+		logger.Info("Set PeerTLSInfo.SkipClientSANVerify=true from peer-transport-security.skip-client-san-verification")
+	}
 	return nil
 }
 

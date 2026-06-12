@@ -457,5 +457,5 @@ func TestApplyPeerSkipClientSANVerifyWithMalformedYAML(t *testing.T) {
 	cfg := embed.NewConfig()
 	err = applyPeerSkipClientSANVerify(configFilePath, cfg, logger)
 	g.Expect(err).To(HaveOccurred())
-	g.Expect(err.Error()).To(ContainSubstring("failed to unmarshal etcd config for peer-transport-security.skip-client-san-verification"))
+	g.Expect(err.Error()).To(ContainSubstring("failed to parse etcd config"))
 }
