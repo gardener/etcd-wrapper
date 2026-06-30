@@ -1,6 +1,6 @@
 module github.com/gardener/etcd-wrapper
 
-go 1.25.0
+go 1.26.0
 
 // These are test-only dependencies
 require github.com/onsi/gomega v1.37.0
@@ -8,7 +8,7 @@ require github.com/onsi/gomega v1.37.0
 require (
 	go.etcd.io/etcd/client/v3 v3.5.27
 	go.etcd.io/etcd/server/v3 v3.5.27
-	go.uber.org/zap v1.27.1
+	go.uber.org/zap v1.28.0
 	sigs.k8s.io/yaml v1.6.0
 )
 
