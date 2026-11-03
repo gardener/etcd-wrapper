@@ -268,7 +268,7 @@ build:
   artifacts:
     - image: "${ETCD_WRAPPER_IMAGE}"
       ko:
-        fromImage: gcr.io/distroless/static-debian12:nonroot
+        fromImage: gcr.io/distroless/static-debian13:nonroot
         dependencies:
           paths:
             - cmd
